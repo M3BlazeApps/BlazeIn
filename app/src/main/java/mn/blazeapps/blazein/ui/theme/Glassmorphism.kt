@@ -129,6 +129,7 @@ fun GlassCard(
     backgroundColor: Color = Color(0x1E24334C),
     borderAlphaTop: Float = 0.32f,
     borderAlphaBottom: Float = 0.08f,
+    contentPadding: PaddingValues = PaddingValues(14.dp),
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -154,7 +155,7 @@ fun GlassCard(
             .then(clickModifier)
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
+            modifier = Modifier.padding(contentPadding),
             content = content
         )
     }
@@ -168,27 +169,29 @@ fun GlassIconButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    size: Dp = 42.dp,
+    size: Dp = 36.dp,
     containerColor: Color = Color(0x28FFFFFF),
     borderAlphaTop: Float = 0.40f,
     contentColor: Color = AppleTextPrimary,
     content: @Composable () -> Unit
 ) {
-    IconButton(
-        onClick = onClick,
-        enabled = enabled,
+    Box(
         modifier = modifier
             .size(size)
+            .clip(CircleShape)
             .glassEffect(
                 shape = CircleShape,
                 backgroundColor = containerColor,
                 borderAlphaTop = borderAlphaTop,
                 borderAlphaBottom = 0.12f
+            )
+            .clickable(
+                enabled = enabled,
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(bounded = true, color = Color.White.copy(alpha = 0.25f)),
+                onClick = onClick
             ),
-        colors = IconButtonDefaults.iconButtonColors(
-            containerColor = Color.Transparent,
-            contentColor = contentColor
-        )
+        contentAlignment = Alignment.Center
     ) {
         CompositionLocalProvider(LocalContentColor provides contentColor) {
             content()

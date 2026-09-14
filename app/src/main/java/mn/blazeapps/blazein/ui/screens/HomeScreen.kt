@@ -541,23 +541,24 @@ fun VideoItemCard(
 ) {
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         backgroundColor = Color(0x1A25344E),
         borderAlphaTop = 0.35f,
         borderAlphaBottom = 0.08f,
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
         onClick = onClick
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Thumbnail / Icon with Glass Duration Badge
+            // Thumbnail / Icon with Glass Duration Badge (optimized for 360dp screens)
             Box(
                 modifier = Modifier
-                    .size(84.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .size(72.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(Color(0x1F162030))
-                    .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.18f)), RoundedCornerShape(14.dp)),
+                    .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.18f)), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 if (video.thumbnailPath != null && File(video.thumbnailPath).exists()) {
@@ -571,7 +572,7 @@ fun VideoItemCard(
                     Icon(
                         Icons.Default.PlayCircleOutline,
                         contentDescription = null,
-                        modifier = Modifier.size(42.dp),
+                        modifier = Modifier.size(36.dp),
                         tint = AppleCyan
                     )
                 }
@@ -581,13 +582,13 @@ fun VideoItemCard(
                         text = formatDuration(video.durationSeconds),
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
-                            .padding(4.dp),
+                            .padding(3.dp),
                         backgroundColor = Color(0xB3000000)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(modifier = Modifier.width(10.dp))
 
             // Details
             Column(
@@ -598,14 +599,15 @@ fun VideoItemCard(
                     text = title,
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.SemiBold,
-                        lineHeight = 20.sp
+                        lineHeight = 18.sp,
+                        fontSize = 14.sp
                     ),
                     color = AppleTextPrimary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(3.dp))
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -613,14 +615,14 @@ fun VideoItemCard(
                 ) {
                     Text(
                         text = formatFileSize(video.fileSize),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                         color = AppleTextSecondary
                     )
 
                     if (video.isDownloaded) {
                         Text(
                             text = "• Offline",
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                             color = AppleGreen,
                             fontWeight = FontWeight.Medium
                         )
@@ -628,17 +630,17 @@ fun VideoItemCard(
                 }
 
                 if (video.isDownloading) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     LinearProgressIndicator(
                         progress = { video.downloadProgress },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(6.dp)
+                            .height(5.dp)
                             .clip(RoundedCornerShape(3.dp)),
                         color = AppleCyan,
                         trackColor = Color(0x33FFFFFF)
                     )
-                    Spacer(modifier = Modifier.height(3.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "Downloading: ${(video.downloadProgress * 100).toInt()}%",
                         style = MaterialTheme.typography.labelSmall,
@@ -648,18 +650,18 @@ fun VideoItemCard(
                 }
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp))
 
-            // Action Buttons in Apple Glass style
+            // Action Buttons in Apple Glass style (compact, zero overlap on 360dp screens)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 when {
                     video.isDownloaded -> {
                         GlassIconButton(
                             onClick = onClick,
-                            size = 42.dp,
+                            size = 34.dp,
                             containerColor = Color(0x350A84FF),
                             borderAlphaTop = 0.5f,
                             contentColor = Color.White
@@ -667,14 +669,14 @@ fun VideoItemCard(
                             Icon(
                                 Icons.Default.PlayArrow,
                                 contentDescription = "Play Offline",
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(19.dp)
                             )
                         }
                     }
                     video.isDownloading -> {
                         GlassIconButton(
                             onClick = onClick,
-                            size = 38.dp,
+                            size = 32.dp,
                             containerColor = Color(0x350A84FF),
                             borderAlphaTop = 0.5f,
                             contentColor = Color.White
@@ -682,12 +684,12 @@ fun VideoItemCard(
                             Icon(
                                 Icons.Default.PlayArrow,
                                 contentDescription = "Stream Now",
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier.size(17.dp)
                             )
                         }
                         GlassIconButton(
                             onClick = onCancelClick,
-                            size = 36.dp,
+                            size = 28.dp,
                             containerColor = Color(0x2BFF453A),
                             borderAlphaTop = 0.4f,
                             contentColor = AppleRed
@@ -695,14 +697,14 @@ fun VideoItemCard(
                             Icon(
                                 Icons.Default.Close,
                                 contentDescription = "Cancel Download",
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(14.dp)
                             )
                         }
                     }
                     else -> {
                         GlassIconButton(
                             onClick = onClick,
-                            size = 42.dp,
+                            size = 34.dp,
                             containerColor = Color(0x350A84FF),
                             borderAlphaTop = 0.5f,
                             contentColor = Color.White
@@ -710,12 +712,12 @@ fun VideoItemCard(
                             Icon(
                                 Icons.Default.PlayArrow,
                                 contentDescription = "Stream Now",
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(19.dp)
                             )
                         }
                         GlassIconButton(
                             onClick = onDownloadClick,
-                            size = 36.dp,
+                            size = 30.dp,
                             containerColor = Color(0x1AFFFFFF),
                             borderAlphaTop = 0.35f,
                             contentColor = AppleCyan
@@ -723,7 +725,7 @@ fun VideoItemCard(
                             Icon(
                                 Icons.Default.Download,
                                 contentDescription = "Download for Offline",
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(15.dp)
                             )
                         }
                     }
