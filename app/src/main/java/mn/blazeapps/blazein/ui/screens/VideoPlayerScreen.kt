@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import mn.blazeapps.blazein.ui.theme.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -547,24 +548,35 @@ fun VideoPlayerScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                // Top Bar
+                // Floating Apple Frosted Glass Top Bar
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color.Black.copy(alpha = 0.6f))
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                        .glassEffect(
+                            shape = RoundedCornerShape(20.dp),
+                            backgroundColor = Color(0xCC0E131E),
+                            borderAlphaTop = 0.45f,
+                            borderAlphaBottom = 0.12f
+                        )
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
                         .align(Alignment.TopCenter),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = onNavigateBack) {
+                    GlassIconButton(
+                        onClick = onNavigateBack,
+                        size = 38.dp,
+                        containerColor = Color(0x22FFFFFF)
+                    ) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
+                            modifier = Modifier.size(18.dp),
                             tint = Color.White
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
@@ -580,13 +592,13 @@ fun VideoPlayerScreen(
                             Text(
                                 text = statusLabel,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (isLocalFileReady) Color(0xFF4CAF50) else Color(0xFF29B6F6)
+                                color = if (isLocalFileReady) AppleGreen else AppleCyan
                             )
                             if (loadedSubtitleName != null) {
                                 Text(
                                     text = "  •  Subtitles: $loadedSubtitleName",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = Color(0xFFFFD54F),
+                                    color = AppleOrange,
                                     fontWeight = FontWeight.Medium,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
@@ -595,36 +607,37 @@ fun VideoPlayerScreen(
                         }
                     }
 
-                    // Subtitle Picker Button
-                    IconButton(
+                    // Subtitle Picker Glass Button
+                    GlassIconButton(
                         onClick = {
                             subtitleLauncher.launch(arrayOf("text/*", "application/*", "*/*"))
-                        }
+                        },
+                        size = 38.dp,
+                        containerColor = if (loadedSubtitleName != null) Color(0x35FF9F0A) else Color(0x22FFFFFF)
                     ) {
                         Icon(
                             Icons.Default.Subtitles,
                             contentDescription = "Load Subtitles",
-                            tint = if (loadedSubtitleName != null) Color(0xFFFFD54F) else Color.White
+                            tint = if (loadedSubtitleName != null) AppleOrange else Color.White,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
 
-                // Quick -10s and +10s Seek Overlay Buttons
+                // Apple Glassy Seek Overlay Buttons (-10s / +10s)
                 Row(
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .fillMaxWidth(0.7f),
+                        .fillMaxWidth(0.68f),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Rewind 10s
-                    IconButton(
-                        onClick = {
-                            exoPlayer.seekBack()
-                        },
-                        modifier = Modifier
-                            .size(56.dp)
-                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                    GlassIconButton(
+                        onClick = { exoPlayer.seekBack() },
+                        size = 60.dp,
+                        containerColor = Color(0x40000000),
+                        borderAlphaTop = 0.45f
                     ) {
                         Icon(
                             Icons.Default.Replay,
@@ -635,13 +648,11 @@ fun VideoPlayerScreen(
                     }
 
                     // Forward 10s
-                    IconButton(
-                        onClick = {
-                            exoPlayer.seekForward()
-                        },
-                        modifier = Modifier
-                            .size(56.dp)
-                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                    GlassIconButton(
+                        onClick = { exoPlayer.seekForward() },
+                        size = 60.dp,
+                        containerColor = Color(0x40000000),
+                        borderAlphaTop = 0.45f
                     ) {
                         Icon(
                             Icons.Default.FastForward,
