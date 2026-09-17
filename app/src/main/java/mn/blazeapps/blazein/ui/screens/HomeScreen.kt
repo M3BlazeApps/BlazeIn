@@ -1,5 +1,6 @@
 package mn.blazeapps.blazein.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -18,9 +19,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -46,13 +50,31 @@ fun HomeScreen(
 ) {
     val authState by viewModel.authState.collectAsState()
     val chats by viewModel.chats.collectAsState()
+    val isLoadingChats by viewModel.isLoadingChats.collectAsState()
     val selectedChatId by viewModel.selectedChatId.collectAsState()
     val videos by viewModel.videos.collectAsState()
     val isLoadingVideos by viewModel.isLoadingVideos.collectAsState()
     val hasMoreVideos by viewModel.hasMoreVideos.collectAsState()
 
-    var dropdownExpanded by remember { mutableStateOf(false) }
+    var chatSearchQuery by remember { mutableStateOf("") }
+    var isSearchActive by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     val selectedChat = chats.find { it.id == selectedChatId }
+
+    val filteredChats = remember(chatSearchQuery, chats) {
+        if (chatSearchQuery.isBlank()) {
+            chats
+        } else {
+            chats.filter { it.title.contains(chatSearchQuery, ignoreCase = true) }
+        }
+    }
+
+    BackHandler(enabled = isSearchActive) {
+        isSearchActive = false
+        focusManager.clearFocus()
+    }
 
     Scaffold(
         containerColor = Color.Transparent,
@@ -192,20 +214,34 @@ fun HomeScreen(
                         }
                     }
                 } else {
-                    // Apple Glassy Chat Selector Dropdown
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    ExposedDropdownMenuBox(
-                        expanded = dropdownExpanded,
-                        onExpandedChange = { dropdownExpanded = it }
+                    // Apple Glassy Auto-complete Chat Search Bar & Suggestions
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
                     ) {
                         OutlinedTextField(
-                            value = selectedChat?.title ?: "Select Chat / Channel / Group",
-                            onValueChange = {},
-                            readOnly = true,
+                            value = chatSearchQuery,
+                            onValueChange = {
+                                chatSearchQuery = it
+                                isSearchActive = true
+                            },
+                            placeholder = {
+                                Text(
+                                    text = if (isLoadingChats) {
+                                        if (chats.isEmpty()) "Syncing chats..." else "Syncing chats (${chats.size} loaded)..."
+                                    } else if (chats.isNotEmpty()) {
+                                        "Search ${chats.size} chats & channels..."
+                                    } else {
+                                        "Search chats & channels..."
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = AppleTextTertiary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            },
+                            singleLine = true,
                             shape = RoundedCornerShape(16.dp),
                             leadingIcon = {
                                 Box(
@@ -216,123 +252,302 @@ fun HomeScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = when (selectedChat?.type) {
-                                            ChatType.CHANNEL -> Icons.Default.Campaign
-                                            ChatType.SUPERGROUP, ChatType.BASIC_GROUP -> Icons.Default.Groups
-                                            ChatType.PRIVATE -> Icons.Default.Person
-                                            else -> Icons.AutoMirrored.Filled.Chat
-                                        },
-                                        contentDescription = null,
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = "Search",
                                         tint = AppleCyan,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
                             },
                             trailingIcon = {
-                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                    modifier = Modifier.padding(end = 4.dp)
+                                ) {
+                                    if (isLoadingChats) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            strokeWidth = 2.dp,
+                                            color = AppleCyan
+                                        )
+                                    }
+                                    if (chatSearchQuery.isNotEmpty()) {
+                                        IconButton(
+                                            onClick = { chatSearchQuery = "" },
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Clear Search",
+                                                tint = AppleTextSecondary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                    IconButton(
+                                        onClick = {
+                                            isSearchActive = !isSearchActive
+                                            if (!isSearchActive) {
+                                                focusManager.clearFocus()
+                                                keyboardController?.hide()
+                                            }
+                                        },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = if (isSearchActive) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                            contentDescription = if (isSearchActive) "Collapse Suggestions" else "Expand Suggestions",
+                                            tint = AppleCyan,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
                             },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = AppleTextPrimary,
-                                unfocusedTextColor = if (selectedChat != null) AppleTextPrimary else AppleTextSecondary,
-                                focusedContainerColor = Color(0x22263650),
-                                unfocusedContainerColor = Color(0x1C223048),
+                                unfocusedTextColor = AppleTextPrimary,
+                                focusedContainerColor = Color(0x2824334C),
+                                unfocusedContainerColor = Color(0x1C202C3F),
                                 focusedBorderColor = AppleCyan,
                                 unfocusedBorderColor = Color(0x2EFFFFFF),
                                 cursorColor = AppleCyan
                             ),
-                            supportingText = if (selectedChat != null) {
-                                {
-                                    val typeLabel = when (selectedChat.type) {
-                                        ChatType.CHANNEL -> "Channel"
-                                        ChatType.SUPERGROUP -> "Supergroup"
-                                        ChatType.BASIC_GROUP -> "Group"
-                                        ChatType.PRIVATE -> "Private Chat"
-                                        ChatType.UNKNOWN -> "Chat"
-                                    }
-                                    Text(
-                                        text = typeLabel,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = AppleCyan
-                                    )
-                                }
-                            } else null,
                             modifier = Modifier
-                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                                 .fillMaxWidth()
+                                .onFocusChanged { focusState ->
+                                    if (focusState.isFocused) {
+                                        isSearchActive = true
+                                    }
+                                }
                         )
 
-                        ExposedDropdownMenu(
-                            expanded = dropdownExpanded,
-                            onDismissRequest = { dropdownExpanded = false },
-                            modifier = Modifier
-                                .heightIn(max = 400.dp)
-                                .border(
-                                    BorderStroke(
-                                        1.dp,
-                                        Brush.verticalGradient(
-                                            listOf(Color.White.copy(alpha = 0.35f), Color.White.copy(alpha = 0.10f))
-                                        )
-                                    ),
-                                    RoundedCornerShape(16.dp)
-                                ),
-                            shape = RoundedCornerShape(16.dp),
-                            containerColor = Color(0xF5141926)
-                        ) {
-                            if (chats.isEmpty()) {
-                                DropdownMenuItem(
-                                    text = { Text("Loading chats...", color = AppleTextSecondary) },
-                                    onClick = { dropdownExpanded = false }
-                                )
-                            } else {
-                                chats.forEach { chat ->
-                                    DropdownMenuItem(
-                                        leadingIcon = {
-                                            Icon(
-                                                imageVector = when (chat.type) {
-                                                    ChatType.CHANNEL -> Icons.Default.Campaign
-                                                    ChatType.SUPERGROUP, ChatType.BASIC_GROUP -> Icons.Default.Groups
-                                                    ChatType.PRIVATE -> Icons.Default.Person
-                                                    else -> Icons.AutoMirrored.Filled.Chat
-                                                },
-                                                contentDescription = null,
-                                                tint = AppleCyan,
-                                                modifier = Modifier.size(20.dp)
-                                            )
+                        // Auto-complete Suggestions Card
+                        if (isSearchActive) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            GlassCard(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 300.dp),
+                                backgroundColor = Color(0xEE141926),
+                                borderAlphaTop = 0.45f,
+                                borderAlphaBottom = 0.15f,
+                                shape = RoundedCornerShape(16.dp),
+                                contentPadding = PaddingValues(0.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = if (chatSearchQuery.isBlank()) {
+                                            "All Chats (${filteredChats.size})"
+                                        } else {
+                                            "Matches (${filteredChats.size})"
                                         },
-                                        text = {
-                                            Column {
-                                                Text(
-                                                    text = chat.title,
-                                                    fontWeight = FontWeight.Medium,
-                                                    color = AppleTextPrimary,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                                val typeLabel = when (chat.type) {
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = AppleTextSecondary
+                                    )
+                                    TextButton(
+                                        onClick = {
+                                            isSearchActive = false
+                                            focusManager.clearFocus()
+                                            keyboardController?.hide()
+                                        },
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "Done",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = AppleCyan,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                                HorizontalDivider(color = Color(0x1AFFFFFF), thickness = 0.5.dp)
+
+                                if (filteredChats.isEmpty()) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 24.dp, horizontal = 16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = if (isLoadingChats && chats.isEmpty()) {
+                                                "Loading Telegram chats..."
+                                            } else {
+                                                "No chats found matching \"$chatSearchQuery\""
+                                            },
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = AppleTextSecondary
+                                        )
+                                    }
+                                } else {
+                                    LazyColumn(
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        items(filteredChats, key = { it.id }) { chat ->
+                                            val isSelected = chat.id == selectedChatId
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable {
+                                                        viewModel.selectChat(chat.id)
+                                                        isSearchActive = false
+                                                        focusManager.clearFocus()
+                                                        keyboardController?.hide()
+                                                    }
+                                                    .background(
+                                                        if (isSelected) Color(0x220A84FF) else Color.Transparent
+                                                    )
+                                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(32.dp)
+                                                        .clip(CircleShape)
+                                                        .background(
+                                                            if (isSelected) Color(0x440A84FF) else Color(0x20FFFFFF)
+                                                        ),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = when (chat.type) {
+                                                            ChatType.CHANNEL -> Icons.Default.Campaign
+                                                            ChatType.SUPERGROUP, ChatType.BASIC_GROUP -> Icons.Default.Groups
+                                                            ChatType.PRIVATE -> Icons.Default.Person
+                                                            else -> Icons.AutoMirrored.Filled.Chat
+                                                        },
+                                                        contentDescription = null,
+                                                        tint = if (isSelected) AppleCyan else AppleTextSecondary,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = chat.title,
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                        color = if (isSelected) AppleCyan else AppleTextPrimary,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                    val typeLabel = when (chat.type) {
+                                                        ChatType.CHANNEL -> "Channel"
+                                                        ChatType.SUPERGROUP -> "Supergroup"
+                                                        ChatType.BASIC_GROUP -> "Group"
+                                                        ChatType.PRIVATE -> "Private Chat"
+                                                        ChatType.UNKNOWN -> "Chat"
+                                                    }
+                                                    Text(
+                                                        text = typeLabel,
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = AppleTextTertiary
+                                                    )
+                                                }
+                                                if (isSelected) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Check,
+                                                        contentDescription = "Selected",
+                                                        tint = AppleCyan,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+                                            }
+                                            HorizontalDivider(color = Color(0x0EFFFFFF), thickness = 0.5.dp)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Active Chat Status Banner (when search suggestions are collapsed)
+                        if (!isSearchActive && selectedChat != null) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            GlassCard(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { isSearchActive = true },
+                                backgroundColor = Color(0x2016253C),
+                                borderAlphaTop = 0.35f,
+                                borderAlphaBottom = 0.10f,
+                                shape = RoundedCornerShape(14.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0x330A84FF)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = when (selectedChat.type) {
+                                                ChatType.CHANNEL -> Icons.Default.Campaign
+                                                ChatType.SUPERGROUP, ChatType.BASIC_GROUP -> Icons.Default.Groups
+                                                ChatType.PRIVATE -> Icons.Default.Person
+                                                else -> Icons.AutoMirrored.Filled.Chat
+                                            },
+                                            contentDescription = null,
+                                            tint = AppleCyan,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = selectedChat.title,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = AppleTextPrimary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text(
+                                                text = when (selectedChat.type) {
                                                     ChatType.CHANNEL -> "Channel"
                                                     ChatType.SUPERGROUP -> "Supergroup"
                                                     ChatType.BASIC_GROUP -> "Group"
                                                     ChatType.PRIVATE -> "Private Chat"
                                                     ChatType.UNKNOWN -> "Chat"
-                                                }
+                                                },
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = AppleCyan
+                                            )
+                                            if (videos.isNotEmpty()) {
                                                 Text(
-                                                    text = typeLabel,
-                                                    style = MaterialTheme.typography.bodySmall,
+                                                    text = "• ${videos.size} videos",
+                                                    style = MaterialTheme.typography.labelSmall,
                                                     color = AppleTextTertiary
                                                 )
                                             }
-                                        },
-                                        onClick = {
-                                            viewModel.selectChat(chat.id)
-                                            dropdownExpanded = false
-                                        },
-                                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                        }
+                                    }
+                                    GlassChip(
+                                        text = "Change",
+                                        icon = Icons.Default.Search,
+                                        backgroundColor = Color(0x280A84FF),
+                                        contentColor = AppleCyan
                                     )
                                 }
                             }
                         }
                     }
-                }
 
                 // Video Content Area
                 if (isLoadingVideos) {

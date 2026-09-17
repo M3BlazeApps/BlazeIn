@@ -35,6 +35,9 @@ class TelegramRepository private constructor(private val context: Context) : Cli
     private val _chats = MutableStateFlow<List<ChatSummary>>(emptyList())
     val chats: StateFlow<List<ChatSummary>> = _chats.asStateFlow()
 
+    private val _isLoadingChats = MutableStateFlow(false)
+    val isLoadingChats: StateFlow<Boolean> = _isLoadingChats.asStateFlow()
+
     private val _selectedChatId = MutableStateFlow<Long?>(null)
     val selectedChatId: StateFlow<Long?> = _selectedChatId.asStateFlow()
 
@@ -119,13 +122,15 @@ class TelegramRepository private constructor(private val context: Context) : Cli
             TdApi.AuthorizationStateReady.CONSTRUCTOR -> {
                 _authState.value = AuthState.Ready()
                 fetchCurrentUser()
-                loadChats()
+                loadAllChats()
             }
             TdApi.AuthorizationStateLoggingOut.CONSTRUCTOR -> {
                 _authState.value = AuthState.LoggingOut
+                _isLoadingChats.value = false
             }
             TdApi.AuthorizationStateClosed.CONSTRUCTOR -> {
                 _authState.value = AuthState.Closed
+                _isLoadingChats.value = false
                 chatMap.clear()
                 _chats.value = emptyList()
                 _videos.value = emptyList()
@@ -212,13 +217,39 @@ class TelegramRepository private constructor(private val context: Context) : Cli
         }
     }
 
-    fun loadChats(limit: Int = 100) {
-        client?.send(TdApi.LoadChats(TdApi.ChatListMain(), limit)) { result ->
-            if (result is TdApi.Error) {
-                Log.d(TAG, "LoadChats note: ${result.message}")
-            }
-            refreshChatList()
+    fun loadAllChats() {
+        if (_isLoadingChats.value) return
+        _isLoadingChats.value = true
+        fetchNextChatBatch()
+    }
+
+    private fun fetchNextChatBatch() {
+        val currentClient = client
+        if (currentClient == null) {
+            _isLoadingChats.value = false
+            return
         }
+        currentClient.send(TdApi.LoadChats(TdApi.ChatListMain(), 100)) { result ->
+            when (result) {
+                is TdApi.Ok -> {
+                    refreshChatList()
+                    fetchNextChatBatch()
+                }
+                is TdApi.Error -> {
+                    Log.d(TAG, "LoadChats finished: [${result.code}] ${result.message}")
+                    _isLoadingChats.value = false
+                    refreshChatList()
+                }
+                else -> {
+                    _isLoadingChats.value = false
+                    refreshChatList()
+                }
+            }
+        }
+    }
+
+    fun loadChats(limit: Int = 100) {
+        loadAllChats()
     }
 
     private fun refreshChatList() {

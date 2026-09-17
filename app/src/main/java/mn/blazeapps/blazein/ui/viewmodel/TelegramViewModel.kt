@@ -21,6 +21,7 @@ class TelegramViewModel(application: Application) : AndroidViewModel(application
 
     val authState: StateFlow<AuthState> = repository.authState
     val chats: StateFlow<List<ChatSummary>> = repository.chats
+    val isLoadingChats: StateFlow<Boolean> = repository.isLoadingChats
     val selectedChatId: StateFlow<Long?> = repository.selectedChatId
     val videos: StateFlow<List<VideoItem>> = repository.videos
     val isLoadingVideos: StateFlow<Boolean> = repository.isLoadingVideos
@@ -80,6 +81,10 @@ class TelegramViewModel(application: Application) : AndroidViewModel(application
 
     fun selectChat(chatId: Long) {
         repository.selectChat(chatId)
+    }
+
+    fun loadAllChats() {
+        repository.loadAllChats()
     }
 
     fun loadMoreVideos() {
