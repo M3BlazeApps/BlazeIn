@@ -60,4 +60,12 @@ class DownloadsViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
     }
+
+    fun deleteAllVideos(onComplete: ((Int) -> Unit)? = null) {
+        viewModelScope.launch {
+            val count = repository.deleteAllVideos()
+            _downloadedVideos.value = emptyList()
+            onComplete?.invoke(count)
+        }
+    }
 }

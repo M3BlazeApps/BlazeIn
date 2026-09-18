@@ -57,6 +57,26 @@ class DownloadsRepository(private val context: Context) {
         } else false
     }
 
+    suspend fun deleteAllVideos(): Int = withContext(Dispatchers.IO) {
+        val filesDir = File(context.filesDir, "tdlib_files")
+        var deletedCount = 0
+        if (filesDir.exists()) {
+            val videoExtensions = setOf("mp4", "mkv", "mov", "webm", "avi", "flv", "wmv", "m4v")
+            filesDir.walkTopDown().forEach { file ->
+                if (file.isFile) {
+                    val isVideoExt = videoExtensions.contains(file.extension.lowercase())
+                    val isMediaFolder = file.parentFile?.name?.lowercase() in setOf("videos", "video", "documents", "document", "animations", "animation")
+                    if (isVideoExt || isMediaFolder) {
+                        if (file.delete()) {
+                            deletedCount++
+                        }
+                    }
+                }
+            }
+        }
+        deletedCount
+    }
+
     suspend fun fetchMetadata(title: String): MovieMetadata? = withContext(Dispatchers.IO) {
         try {
             // Use iTunes Search API

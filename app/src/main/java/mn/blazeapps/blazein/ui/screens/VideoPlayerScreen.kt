@@ -274,11 +274,12 @@ private fun buildVideoSource(
     isLocalReady: Boolean,
     repository: TelegramRepository
 ): MediaSource {
-    return if (isLocalReady) {
-        val localUri = Uri.fromFile(File(video.localPath!!))
+    return if (isLocalReady && !video.localPath.isNullOrBlank()) {
+        val localUri = Uri.fromFile(File(video.localPath))
+        val mediaId = if (video.fileId != 0) video.fileId.toString() else video.localPath
         val mediaItem = MediaItem.Builder()
             .setUri(localUri)
-            .setMediaId(video.fileId.toString())
+            .setMediaId(mediaId)
             .build()
         ProgressiveMediaSource.Factory(DefaultDataSource.Factory(context))
             .createMediaSource(mediaItem)
@@ -341,7 +342,8 @@ fun VideoPlayerScreen(
         }
     }
 
-    if (video == null || video.fileId == 0) {
+    val hasValidLocalFile = video?.localPath != null && File(video.localPath).exists()
+    if (video == null || (video.fileId == 0 && !hasValidLocalFile)) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -374,7 +376,7 @@ fun VideoPlayerScreen(
     }
 
     val isLocalFileReady = remember(video) {
-        video.isDownloaded && video.localPath != null && File(video.localPath).exists()
+        hasValidLocalFile || (video.isDownloaded && video.localPath != null && File(video.localPath).exists())
     }
 
     // Build ExoPlayer with 10s seek increments and progressive streaming
@@ -397,6 +399,11 @@ fun VideoPlayerScreen(
                 addListener(object : Player.Listener {
                     override fun onPlaybackStateChanged(playbackState: Int) {
                         isBuffering = (playbackState == Player.STATE_BUFFERING)
+                    }
+
+                    override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                        Log.e(TAG, "ExoPlayer error occurred: ${error.message}", error)
+                        Toast.makeText(context, "Playback error: ${error.message ?: "Unknown error"}", Toast.LENGTH_LONG).show()
                     }
                 })
             }

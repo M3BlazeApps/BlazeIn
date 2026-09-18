@@ -78,6 +78,7 @@ fun TelegramApp(viewModel: TelegramViewModel = viewModel(), downloadsViewModel: 
         composable("settings") {
             SettingsScreen(
                 viewModel = viewModel,
+                downloadsViewModel = downloadsViewModel,
                 onNavigateBack = {
                     navController.popBackStack()
                 }
@@ -91,11 +92,21 @@ fun TelegramApp(viewModel: TelegramViewModel = viewModel(), downloadsViewModel: 
                     navController.popBackStack()
                 },
                 onPlayVideo = { file ->
+                    val pseudoId = kotlin.math.abs(file.absolutePath.hashCode()).coerceAtLeast(1)
                     viewModel.selectedVideoForPlayback = VideoItem(
-                        messageId = 0, chatId = 0, fileId = 0, fileName = file.name,
-                        caption = "", durationSeconds = 0, fileSize = file.length(),
-                        width = 0, height = 0, localPath = file.absolutePath,
-                        isDownloaded = true, downloadProgress = 1f, isDownloading = false
+                        messageId = 0,
+                        chatId = 0,
+                        fileId = pseudoId,
+                        fileName = file.name,
+                        caption = file.nameWithoutExtension,
+                        durationSeconds = 0,
+                        fileSize = file.length(),
+                        width = 0,
+                        height = 0,
+                        localPath = file.absolutePath,
+                        isDownloaded = true,
+                        downloadProgress = 1f,
+                        isDownloading = false
                     )
                     navController.navigate("player")
                 }

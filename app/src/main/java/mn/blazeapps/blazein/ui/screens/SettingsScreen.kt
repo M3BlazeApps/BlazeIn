@@ -22,18 +22,24 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 import mn.blazeapps.blazein.data.model.AuthState
 import mn.blazeapps.blazein.ui.theme.*
+import mn.blazeapps.blazein.ui.viewmodel.DownloadsViewModel
 import mn.blazeapps.blazein.ui.viewmodel.TelegramViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     viewModel: TelegramViewModel,
+    downloadsViewModel: DownloadsViewModel,
     onNavigateBack: () -> Unit
 ) {
     val authState by viewModel.authState.collectAsState()
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
+    var showDeleteAllConfirmation by remember { mutableStateOf(false) }
 
     val glassTextFieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = AppleTextPrimary,
@@ -446,7 +452,120 @@ fun SettingsScreen(
                         }
                     }
                 }
+
+                // Downloads Storage Management
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    backgroundColor = Color(0x1824334C),
+                    borderAlphaTop = 0.35f,
+                    borderAlphaBottom = 0.10f
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color(0x280A84FF)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Folder,
+                                contentDescription = null,
+                                tint = AppleCyan,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Downloads Storage",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = AppleTextPrimary
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Clear all downloaded videos to free up storage on your device.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = AppleTextSecondary
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = { showDeleteAllConfirmation = true },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0x28FF453A),
+                            contentColor = AppleRed
+                        ),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .glassEffect(
+                                shape = RoundedCornerShape(14.dp),
+                                backgroundColor = Color(0x22FF453A),
+                                borderAlphaTop = 0.40f,
+                                borderAlphaBottom = 0.12f
+                            )
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = null, tint = AppleRed, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Delete All Downloaded Files", fontWeight = FontWeight.SemiBold)
+                    }
+                }
             }
         }
+    }
+
+    // Confirmation Dialog to Delete All Downloads
+    if (showDeleteAllConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAllConfirmation = false },
+            containerColor = Color(0xFA151A27),
+            titleContentColor = AppleTextPrimary,
+            textContentColor = AppleTextSecondary,
+            shape = RoundedCornerShape(20.dp),
+            title = {
+                Text(
+                    text = "Delete All Downloads?",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text("This will permanently remove all downloaded videos and media from your device storage. This action cannot be undone.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        downloadsViewModel.deleteAllVideos { count ->
+                            Toast.makeText(
+                                context,
+                                if (count > 0) "Deleted $count downloaded file(s)" else "No downloaded files found to delete",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                        showDeleteAllConfirmation = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AppleRed,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Delete Everything", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteAllConfirmation = false }
+                ) {
+                    Text("Cancel", color = AppleCyan, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        )
     }
 }
