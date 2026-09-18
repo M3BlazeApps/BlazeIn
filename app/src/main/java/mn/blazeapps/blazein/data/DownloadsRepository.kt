@@ -27,19 +27,19 @@ class DownloadsRepository(private val context: Context) {
 
     suspend fun getDownloadedVideos(): List<DownloadedVideo> = withContext(Dispatchers.IO) {
         val filesDir = File(context.filesDir, "tdlib_files")
-        val videoDir = File(filesDir, "video")
-        val docDir = File(filesDir, "document")
-        val animDir = File(filesDir, "animation")
-
         val allFiles = mutableListOf<File>()
-        
-        if (videoDir.exists()) allFiles.addAll(videoDir.listFiles()?.toList() ?: emptyList())
-        if (docDir.exists()) allFiles.addAll(docDir.listFiles()?.toList() ?: emptyList())
-        if (animDir.exists()) allFiles.addAll(animDir.listFiles()?.toList() ?: emptyList())
+
+        if (filesDir.exists()) {
+            filesDir.walkTopDown().forEach { file ->
+                if (file.isFile) {
+                    allFiles.add(file)
+                }
+            }
+        }
 
         val videoExtensions = setOf("mp4", "mkv", "mov", "webm", "avi", "flv", "wmv", "m4v")
         
-        allFiles.filter { it.isFile && videoExtensions.contains(it.extension.lowercase()) }
+        allFiles.filter { videoExtensions.contains(it.extension.lowercase()) }
             .sortedByDescending { it.lastModified() }
             .map { file ->
                 val cleanTitle = cleanFileName(file.nameWithoutExtension)
