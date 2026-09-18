@@ -38,12 +38,15 @@ BlazeIn connects directly to Telegram's MTProto network via TDLib, letting you d
 - High-performance binary search for subtitle timing
 - Styled high-contrast overlay (white text on semi-transparent dark background)
 
-### ⬇️ Download Manager
+#### ⬇️ Download Manager & Downloads Screen (New in v2.0.0)
 - Download videos for offline playback with real-time progress tracking
-- Cancel ongoing downloads
+- **Dedicated Downloads Screen**: Browse, manage, and play all offline downloaded media
+- **One-tap Playback & File Deletion**: Instant playback using the built-in video player or delete files to free up disk space
+- **Open-source Movie Database Details**: Automatically parses video file names and fetches rich metadata (movie/show title, release year, genre, plot synopsis, and high-res poster artwork) via open-source iTunes Search API with no API key needed
 - Automatic local playback when file is fully downloaded
 
-### 🎨 Material You
+### 🎨 Material You & Glassmorphism
+- Apple-inspired glassmorphism theme and modern controls
 - Material 3 with dynamic color theming on Android 12+
 - Automatic dark/light mode based on system setting
 
@@ -51,6 +54,7 @@ BlazeIn connects directly to Telegram's MTProto network via TDLib, letting you d
 
 | Component | Technology |
 |---|---|
+| Version | 2.0.0 |
 | Language | Kotlin 2.2.10 |
 | UI | Jetpack Compose + Material 3 |
 | Architecture | MVVM (ViewModel + StateFlow + UDF) |
@@ -65,51 +69,56 @@ BlazeIn connects directly to Telegram's MTProto network via TDLib, letting you d
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     UI LAYER (Compose)                      │
-│   HomeScreen  │  SettingsScreen  │  VideoPlayerScreen        │
-└──────────────────────────────▲──────────────────────────────┘
-                               │ Observes StateFlow
-┌──────────────────────────────┴──────────────────────────────┐
-│                    VIEWMODEL LAYER                          │
-│                   TelegramViewModel                         │
-│          (Single source of truth for UI state)              │
-└──────────────────────────────▲──────────────────────────────┘
-                               │ Calls suspend functions
-┌──────────────────────────────┴──────────────────────────────┐
-│                      DATA LAYER                             │
-│  TelegramRepository ─── Singleton, TDLib ResultHandler      │
-│  TelegramDataSource ─── Media3 BaseDataSource (streaming)   │
-│  UserPreferences ─────── SharedPreferences manager          │
-│  TelegramModels ──────── AuthState, VideoItem, ChatSummary  │
-└──────────────────────────────▲──────────────────────────────┘
-                               │ Native JNI (libtdjni.so)
-┌──────────────────────────────┴──────────────────────────────┐
-│                   TDLib Native Client                       │
-│                 Telegram MTProto Servers                     │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           UI LAYER (Compose)                            │
+│   HomeScreen  │  DownloadsScreen  │  SettingsScreen  │  VideoPlayerScreen│
+└────────────────────────────────────▲────────────────────────────────────┘
+                                     │ Observes StateFlow
+┌────────────────────────────────────┴────────────────────────────────────┐
+│                          VIEWMODEL LAYER                                │
+│               TelegramViewModel  │  DownloadsViewModel                  │
+│                (Single source of truth for UI state)                    │
+└────────────────────────────────────▲────────────────────────────────────┘
+                                     │ Calls suspend functions
+┌────────────────────────────────────┴────────────────────────────────────┐
+│                            DATA LAYER                                   │
+│  TelegramRepository ─── Singleton, TDLib ResultHandler                  │
+│  DownloadsRepository ── File scanner & iTunes Movie Metadata fetcher    │
+│  TelegramDataSource ─── Media3 BaseDataSource (streaming)               │
+│  UserPreferences ─────── SharedPreferences manager                      │
+│  TelegramModels ──────── AuthState, VideoItem, ChatSummary, Downloads   │
+└────────────────────────────────────▲────────────────────────────────────┘
+                                     │ Native JNI (libtdjni.so)
+┌────────────────────────────────────┴────────────────────────────────────┐
+│                         TDLib Native Client                             │
+│                       Telegram MTProto Servers                          │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Project Structure
 
 ```
 app/src/main/java/mn/blazeapps/blazein/
-├── MainActivity.kt                    # Single Activity with NavHost (home → settings → player)
+├── MainActivity.kt                    # Single Activity with NavHost (home → downloads → settings → player)
 ├── data/
 │   ├── model/
 │   │   └── TelegramModels.kt          # AuthState, ChatSummary, ChatType, VideoItem
 │   ├── TelegramRepository.kt          # TDLib client lifecycle, chat/video queries, downloads
 │   ├── TelegramDataSource.kt          # Media3 BaseDataSource for progressive TDLib streaming
+│   ├── DownloadsRepository.kt         # Recursive file scanner & iTunes movie metadata fetcher
 │   └── UserPreferences.kt             # SharedPreferences for API credentials & phone
 ├── ui/
 │   ├── screens/
 │   │   ├── HomeScreen.kt              # Auth prompt, chat selector, video grid with actions
+│   │   ├── DownloadsScreen.kt         # Downloaded videos manager, playback, deletion & metadata card
 │   │   ├── SettingsScreen.kt          # API setup, phone auth, OTP, 2FA, session management
 │   │   └── VideoPlayerScreen.kt       # Immersive ExoPlayer, subtitles, overlay controls
 │   ├── viewmodel/
-│   │   └── TelegramViewModel.kt       # App state (StateFlow), user actions, coroutine bridge
+│   │   ├── TelegramViewModel.kt       # Telegram state, chats, streaming playback bridge
+│   │   └── DownloadsViewModel.kt      # Downloaded videos state, deletion & metadata enrichment
 │   └── theme/
-│       ├── Color.kt                   # Purple/Pink color palette (light & dark)
+│       ├── Color.kt                   # Glassmorphic Apple-inspired color palette
+│       ├── Glassmorphism.kt           # Custom glass cards, buttons, chips, and backgrounds
 │       ├── Theme.kt                   # Material 3 + Dynamic Color support
 │       └── Type.kt                    # Typography definitions
 ```
@@ -128,7 +137,7 @@ app/src/main/java/mn/blazeapps/blazein/
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/nicegram/BlazeIn.git
+   git clone https://github.com/M3BlazeApps/BlazeIn.git
    cd BlazeIn
    ```
 
