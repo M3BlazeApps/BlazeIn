@@ -46,6 +46,7 @@ import java.util.Locale
 fun HomeScreen(
     viewModel: TelegramViewModel,
     onNavigateToSettings: () -> Unit,
+    onNavigateToDownloads: () -> Unit,
     onPlayVideo: (VideoItem) -> Unit
 ) {
     val authState by viewModel.authState.collectAsState()
@@ -117,6 +118,17 @@ fun HomeScreen(
                     )
                 },
                 actions = {
+                    GlassIconButton(
+                        onClick = onNavigateToDownloads,
+                        size = 40.dp
+                    ) {
+                        Icon(
+                            Icons.Default.Download,
+                            contentDescription = "Downloads",
+                            modifier = Modifier.size(20.dp),
+                            tint = AppleTextPrimary
+                        )
+                    }
                     if (selectedChatId != null) {
                         GlassIconButton(
                             onClick = { viewModel.refreshVideos() },

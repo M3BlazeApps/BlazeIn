@@ -17,11 +17,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import mn.blazeapps.blazein.data.model.AuthState
+import mn.blazeapps.blazein.ui.screens.DownloadsScreen
 import mn.blazeapps.blazein.ui.screens.HomeScreen
 import mn.blazeapps.blazein.ui.screens.SettingsScreen
 import mn.blazeapps.blazein.ui.screens.VideoPlayerScreen
 import mn.blazeapps.blazein.ui.theme.BlazeInTheme
+import mn.blazeapps.blazein.ui.viewmodel.DownloadsViewModel
 import mn.blazeapps.blazein.ui.viewmodel.TelegramViewModel
+import mn.blazeapps.blazein.data.model.VideoItem
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,7 +44,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun TelegramApp(viewModel: TelegramViewModel = viewModel()) {
+fun TelegramApp(viewModel: TelegramViewModel = viewModel(), downloadsViewModel: DownloadsViewModel = viewModel()) {
     val navController = rememberNavController()
     val authState by viewModel.authState.collectAsState()
 
@@ -62,6 +65,10 @@ fun TelegramApp(viewModel: TelegramViewModel = viewModel()) {
                 onNavigateToSettings = {
                     navController.navigate("settings")
                 },
+                onNavigateToDownloads = {
+                    downloadsViewModel.loadVideos()
+                    navController.navigate("downloads")
+                },
                 onPlayVideo = { video ->
                     navController.navigate("player")
                 }
@@ -73,6 +80,24 @@ fun TelegramApp(viewModel: TelegramViewModel = viewModel()) {
                 viewModel = viewModel,
                 onNavigateBack = {
                     navController.popBackStack()
+                }
+            )
+        }
+        
+        composable("downloads") {
+            DownloadsScreen(
+                viewModel = downloadsViewModel,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onPlayVideo = { file ->
+                    viewModel.selectedVideoForPlayback = VideoItem(
+                        messageId = 0, chatId = 0, fileId = 0, fileName = file.name,
+                        caption = "", durationSeconds = 0, fileSize = file.length(),
+                        width = 0, height = 0, localPath = file.absolutePath,
+                        isDownloaded = true, downloadProgress = 1f, isDownloading = false
+                    )
+                    navController.navigate("player")
                 }
             )
         }
