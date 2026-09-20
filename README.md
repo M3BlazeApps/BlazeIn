@@ -45,10 +45,11 @@ BlazeIn connects directly to Telegram's MTProto network via TDLib, letting you d
 - **Open-source Movie Database Details**: Automatically parses video file names and fetches rich metadata (movie/show title, release year, genre, plot synopsis, and high-res poster artwork) via open-source iTunes Search API with no API key needed
 - Automatic local playback when file is fully downloaded
 
-### 🎨 Material You & Glassmorphism
-- Apple-inspired glassmorphism theme and modern controls
-- Material 3 with dynamic color theming on Android 12+
-- Automatic dark/light mode based on system setting
+### 🎨 Figma Make Glassmorphism & UI Redesign
+- **Obsidian Mesh Canvas**: Deep obsidian dark background (`#080B1A`) with ambient 4-point radial mesh glow (indigo, azure, violet, warm orange)
+- **Electric Dual-Accent System**: Vivid Blue-Violet (`#6366F1`) and high-energy Electric Orange (`#F97316`) for primary actions, buttons, and badges
+- **Refined Glass Components**: 16dp / 12dp frosted glass cards (`rgba(255,255,255,0.04)`), ultra-thin glass borders (`rgba(255,255,255,0.08)`), glowing squircle icon boxes, and pill badges
+- **Figma Make Layouts**: Overhauled Home, Settings, Downloads, and Video Player screens matching the modern Figma Make prototype specification
 
 ## Tech Stack
 

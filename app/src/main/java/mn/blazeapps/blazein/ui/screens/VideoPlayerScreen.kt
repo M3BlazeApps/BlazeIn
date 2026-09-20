@@ -555,25 +555,26 @@ fun VideoPlayerScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                // Floating Apple Frosted Glass Top Bar
+                // Floating Frosted Glass Top Bar
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 14.dp)
                         .glassEffect(
                             shape = RoundedCornerShape(20.dp),
-                            backgroundColor = Color(0xCC0E131E),
-                            borderAlphaTop = 0.45f,
-                            borderAlphaBottom = 0.12f
+                            backgroundColor = Color(0xEE080B1A),
+                            borderAlphaTop = 0.35f,
+                            borderAlphaBottom = 0.10f
                         )
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .padding(horizontal = 14.dp, vertical = 8.dp)
                         .align(Alignment.TopCenter),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     GlassIconButton(
                         onClick = onNavigateBack,
                         size = 38.dp,
-                        containerColor = Color(0x22FFFFFF)
+                        shape = RoundedCornerShape(12.dp),
+                        containerColor = GlassBg
                     ) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
@@ -583,7 +584,7 @@ fun VideoPlayerScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
@@ -599,13 +600,13 @@ fun VideoPlayerScreen(
                             Text(
                                 text = statusLabel,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (isLocalFileReady) AppleGreen else AppleCyan
+                                color = if (isLocalFileReady) ColorGreenLight else ColorBlueVioletLight
                             )
                             if (loadedSubtitleName != null) {
                                 Text(
                                     text = "  •  Subtitles: $loadedSubtitleName",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = AppleOrange,
+                                    color = ColorOrangeLight,
                                     fontWeight = FontWeight.Medium,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
@@ -620,12 +621,13 @@ fun VideoPlayerScreen(
                             subtitleLauncher.launch(arrayOf("text/*", "application/*", "*/*"))
                         },
                         size = 38.dp,
-                        containerColor = if (loadedSubtitleName != null) Color(0x35FF9F0A) else Color(0x22FFFFFF)
+                        shape = RoundedCornerShape(12.dp),
+                        containerColor = if (loadedSubtitleName != null) ColorOrangeDim else GlassBg
                     ) {
                         Icon(
                             Icons.Default.Subtitles,
                             contentDescription = "Load Subtitles",
-                            tint = if (loadedSubtitleName != null) AppleOrange else Color.White,
+                            tint = if (loadedSubtitleName != null) ColorOrangeLight else Color.White,
                             modifier = Modifier.size(18.dp)
                         )
                     }

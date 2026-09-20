@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,7 +30,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * Ambient background container that produces subtle depth behind frosted glass elements.
+ * Ambient background container reproducing the multi-point radial mesh glow from the Figma Make design:
+ * - Base: deep obsidian mesh (#1A0A3A -> #0F1A3D -> #2A0E1A)
+ * - Top-Left: Indigo glow (rgba(99, 102, 241, 0.45))
+ * - Top-Right: Electric Orange glow (rgba(249, 115, 22, 0.35))
+ * - Bottom-Right: Violet glow (rgba(139, 92, 246, 0.40))
+ * - Bottom-Left: Warm Orange glow (rgba(249, 115, 22, 0.28))
  */
 @Composable
 fun GlassBackground(
@@ -42,36 +45,78 @@ fun GlassBackground(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(AppleCanvasDark)
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        BgMeshIndigo,
+                        BgMeshAzure,
+                        BgDeep,
+                        BgMeshOrange
+                    )
+                )
+            )
     ) {
-        // Ambient subtle glow top-left / center (indigo/violet depth)
+        // Top-Left Glowing Orb (Indigo / Blue-Violet)
         Box(
             modifier = Modifier
-                .fillMaxWidth(1.2f)
-                .height(420.dp)
-                .offset(x = (-60).dp, y = (-80).dp)
+                .size(360.dp)
+                .offset(x = (-80).dp, y = (-80).dp)
                 .background(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            Color(0x353B2D71),
-                            Color(0x18201A4A),
+                            Color(0x606366F1),
+                            Color(0x286366F1),
                             Color.Transparent
                         )
                     )
                 )
         )
 
-        // Ambient subtle glow top-right (deep oceanic azure/cyan sheen)
+        // Top-Right Glowing Orb (Electric Orange)
         Box(
             modifier = Modifier
-                .size(380.dp)
+                .size(320.dp)
                 .align(Alignment.TopEnd)
-                .offset(x = 100.dp, y = 60.dp)
+                .offset(x = 80.dp, y = (-40).dp)
                 .background(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            Color(0x280A588C),
-                            Color(0x100A3860),
+                            Color(0x50F97316),
+                            Color(0x20F97316),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+
+        // Bottom-Right Glowing Orb (Violet / Purple)
+        Box(
+            modifier = Modifier
+                .size(340.dp)
+                .align(Alignment.BottomEnd)
+                .offset(x = 60.dp, y = 60.dp)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color(0x558B5CF6),
+                            Color(0x228B5CF6),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+
+        // Bottom-Left Glowing Orb (Warm Orange)
+        Box(
+            modifier = Modifier
+                .size(300.dp)
+                .align(Alignment.BottomStart)
+                .offset(x = (-60).dp, y = 80.dp)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color(0x40F97316),
+                            Color(0x15F97316),
                             Color.Transparent
                         )
                     )
@@ -83,27 +128,22 @@ fun GlassBackground(
 }
 
 /**
- * Modifier that applies Apple liquid glass styling:
- * - Frosted translucent background gradient
+ * Modifier applying Figma Make glassmorphic styling:
+ * - Translucent glass background with rim reflection
+ * - Border highlight gradient
  * - Rounded corner clip
- * - Specular border reflection gradient (top-to-bottom rim light)
  */
 fun Modifier.glassEffect(
-    shape: Shape = RoundedCornerShape(20.dp),
-    backgroundColor: Color = Color(0x1F222F46),
+    shape: Shape = RoundedCornerShape(16.dp),
+    backgroundColor: Color = GlassBg,
     borderColor: Color = Color.White,
-    borderAlphaTop: Float = 0.35f,
+    borderAlphaTop: Float = 0.22f,
     borderAlphaBottom: Float = 0.08f,
     borderWidth: Dp = 1.dp
 ): Modifier = this
     .clip(shape)
     .background(
-        brush = Brush.verticalGradient(
-            colors = listOf(
-                backgroundColor.copy(alpha = backgroundColor.alpha.coerceAtLeast(0.18f)),
-                backgroundColor.copy(alpha = (backgroundColor.alpha * 0.65f).coerceAtLeast(0.08f))
-            )
-        ),
+        color = backgroundColor,
         shape = shape
     )
     .border(
@@ -120,15 +160,16 @@ fun Modifier.glassEffect(
     )
 
 /**
- * Reusable Glass Card with Apple curvature, frosted sheen, and optional click response.
+ * Reusable Glass Card with Figma Make 16dp curvature, soft specular rim, and optional click interaction.
  */
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,
-    shape: Shape = RoundedCornerShape(20.dp),
-    backgroundColor: Color = Color(0x1E24334C),
-    borderAlphaTop: Float = 0.32f,
+    shape: Shape = RoundedCornerShape(16.dp),
+    backgroundColor: Color = GlassBg,
+    borderAlphaTop: Float = 0.24f,
     borderAlphaBottom: Float = 0.08f,
+    borderColor: Color = Color.White,
     contentPadding: PaddingValues = PaddingValues(14.dp),
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
@@ -145,10 +186,11 @@ fun GlassCard(
 
     Box(
         modifier = modifier
-            .shadow(elevation = 8.dp, shape = shape, spotColor = Color(0x40000000), ambientColor = Color(0x20000000))
+            .shadow(elevation = 6.dp, shape = shape, spotColor = Color(0x30000000), ambientColor = Color(0x15000000))
             .glassEffect(
                 shape = shape,
                 backgroundColor = backgroundColor,
+                borderColor = borderColor,
                 borderAlphaTop = borderAlphaTop,
                 borderAlphaBottom = borderAlphaBottom
             )
@@ -162,7 +204,7 @@ fun GlassCard(
 }
 
 /**
- * Circular Frosted Glass Icon Button (for action bars, player controls, etc.)
+ * Squircle/Circular Frosted Glass Icon Button (for action bars, toolbar, player controls)
  */
 @Composable
 fun GlassIconButton(
@@ -170,20 +212,21 @@ fun GlassIconButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     size: Dp = 36.dp,
-    containerColor: Color = Color(0x28FFFFFF),
-    borderAlphaTop: Float = 0.40f,
-    contentColor: Color = AppleTextPrimary,
+    shape: Shape = RoundedCornerShape(12.dp),
+    containerColor: Color = GlassBg,
+    borderAlphaTop: Float = 0.25f,
+    contentColor: Color = TextPrimary,
     content: @Composable () -> Unit
 ) {
     Box(
         modifier = modifier
             .size(size)
-            .clip(CircleShape)
+            .clip(shape)
             .glassEffect(
-                shape = CircleShape,
+                shape = shape,
                 backgroundColor = containerColor,
                 borderAlphaTop = borderAlphaTop,
-                borderAlphaBottom = 0.12f
+                borderAlphaBottom = 0.08f
             )
             .clickable(
                 enabled = enabled,
@@ -200,47 +243,70 @@ fun GlassIconButton(
 }
 
 /**
- * Pill-shaped Glass Badge/Chip (for duration, tags, counts)
+ * Pill-shaped badge component matching Figma Make's `.pill-badge` style.
  */
 @Composable
-fun GlassChip(
+fun PillBadge(
     text: String,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
-    backgroundColor: Color = Color(0x4D000000),
-    contentColor: Color = AppleTextPrimary
+    backgroundColor: Color = ColorBlueVioletDim,
+    borderColor: Color = Color(0x596366F1),
+    contentColor: Color = ColorBlueVioletSubtle
 ) {
     Row(
         modifier = modifier
-            .glassEffect(
-                shape = RoundedCornerShape(12.dp),
-                backgroundColor = backgroundColor,
-                borderAlphaTop = 0.35f,
-                borderAlphaBottom = 0.10f
-            )
-            .padding(horizontal = 8.dp, vertical = 3.dp),
+            .clip(RoundedCornerShape(999.dp))
+            .background(backgroundColor)
+            .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(999.dp))
+            .padding(horizontal = 10.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         if (icon != null) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = contentColor,
-                modifier = Modifier.size(12.dp)
+                modifier = Modifier.size(11.dp)
             )
         }
         Text(
             text = text,
             color = contentColor,
             fontSize = 11.sp,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.3.sp
         )
     }
 }
 
 /**
- * Apple Frosted Glass Top App Bar with bottom specular hairline
+ * Reusable Squircle Icon Box with gradient fill and colored drop glow shadow (used in brand headers & cards).
+ */
+@Composable
+fun SquircleIconBox(
+    modifier: Modifier = Modifier,
+    size: Dp = 48.dp,
+    shape: Shape = RoundedCornerShape(16.dp),
+    brush: Brush = Brush.linearGradient(listOf(ColorBlueViolet, ColorOrange)),
+    shadowColor: Color = Color(0x666366F1),
+    content: @Composable () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .shadow(elevation = 10.dp, shape = shape, spotColor = shadowColor, ambientColor = shadowColor)
+            .clip(shape)
+            .background(brush),
+        contentAlignment = Alignment.Center
+    ) {
+        content()
+    }
+}
+
+/**
+ * Glass Top App Bar adhering to the Figma Make redesign.
  */
 @Composable
 fun GlassTopAppBar(
@@ -254,28 +320,20 @@ fun GlassTopAppBar(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xCC0D1017),
-                        Color(0xB3101522)
-                    )
-                )
-            )
             .statusBarsPadding()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .padding(horizontal = 18.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (navigationIcon != null) {
                 navigationIcon()
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(12.dp))
             } else if (leadingBrandIcon != null) {
                 leadingBrandIcon()
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(12.dp))
             }
 
             Column(
@@ -296,21 +354,24 @@ fun GlassTopAppBar(
                 )
             }
         }
-
-        // Specular hairline separator at the bottom of the glass top bar
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(
-                            Color(0x10FFFFFF),
-                            Color(0x30FFFFFF),
-                            Color(0x10FFFFFF)
-                        )
-                    )
-                )
-        )
     }
+}
+
+// Alias for backwards compatibility
+@Composable
+fun GlassChip(
+    text: String,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    backgroundColor: Color = Color(0x4D000000),
+    contentColor: Color = TextPrimary
+) {
+    PillBadge(
+        text = text,
+        modifier = modifier,
+        icon = icon,
+        backgroundColor = backgroundColor,
+        borderColor = Color(0x28FFFFFF),
+        contentColor = contentColor
+    )
 }
