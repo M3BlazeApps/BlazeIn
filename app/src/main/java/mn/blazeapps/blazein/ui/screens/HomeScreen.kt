@@ -61,6 +61,7 @@ fun HomeScreen(
 
     var chatSearchQuery by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) }
+    var videoSearchQuery by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -71,6 +72,17 @@ fun HomeScreen(
             chats
         } else {
             chats.filter { it.title.contains(chatSearchQuery, ignoreCase = true) }
+        }
+    }
+
+    val filteredVideos = remember(videoSearchQuery, videos) {
+        if (videoSearchQuery.isBlank()) {
+            videos
+        } else {
+            videos.filter {
+                it.fileName.contains(videoSearchQuery, ignoreCase = true) ||
+                it.caption.contains(videoSearchQuery, ignoreCase = true)
+            }
         }
     }
 
@@ -756,7 +768,7 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         PillBadge(
-                            text = "${videos.size} videos available",
+                            text = if (videoSearchQuery.isNotBlank()) "${filteredVideos.size} of ${videos.size} videos" else "${videos.size} videos available",
                             icon = Icons.Default.Movie
                         )
 
@@ -777,56 +789,136 @@ fun HomeScreen(
                         }
                     }
 
-                    LazyColumn(
+                    // Video Search Bar
+                    OutlinedTextField(
+                        value = videoSearchQuery,
+                        onValueChange = { videoSearchQuery = it },
                         modifier = Modifier
-                            .fillMaxSize()
-                            .weight(1f),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(videos, key = { it.messageId }) { video ->
-                            VideoItemCard(
-                                video = video,
-                                onClick = {
-                                    viewModel.selectedVideoForPlayback = video
-                                    onPlayVideo(video)
-                                },
-                                onDownloadClick = {
-                                    viewModel.downloadVideo(video.fileId)
-                                },
-                                onCancelClick = {
-                                    viewModel.cancelDownload(video.fileId)
-                                }
+                            .fillMaxWidth()
+                            .padding(horizontal = 18.dp)
+                            .padding(bottom = 8.dp),
+                        placeholder = {
+                            Text(
+                                text = "Search ${videos.size} videos by name…",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (isDark) TextLightMuted else TextDarkMuted
                             )
-                        }
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Search Videos",
+                                tint = if (isDark) TextLightMuted else TextDarkMuted,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        trailingIcon = {
+                            if (videoSearchQuery.isNotEmpty()) {
+                                IconButton(onClick = { videoSearchQuery = "" }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Clear Search",
+                                        tint = if (isDark) TextLightMuted else TextDarkMuted,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = if (isDark) CardDark else CardWhite,
+                            unfocusedContainerColor = if (isDark) CardDark else CardWhite,
+                            focusedBorderColor = NativeViolet,
+                            unfocusedBorderColor = if (isDark) BorderDark else BorderLight,
+                            cursorColor = NativeViolet,
+                            focusedTextColor = if (isDark) TextLightPrimary else TextDarkPrimary,
+                            unfocusedTextColor = if (isDark) TextLightPrimary else TextDarkPrimary
+                        ),
+                        textStyle = MaterialTheme.typography.bodyMedium
+                    )
 
-                        if (hasMoreVideos) {
-                            item {
-                                Button(
-                                    onClick = { viewModel.loadMoreVideos() },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 10.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (isDark) PillBgDark else PillBgLight,
-                                        contentColor = NativeViolet
-                                    ),
-                                    border = BorderStroke(1.dp, if (isDark) BorderDark else BorderLight),
-                                    shape = RoundedCornerShape(16.dp),
-                                    enabled = !isLoadingVideos
-                                ) {
-                                    if (isLoadingVideos) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(18.dp),
-                                            color = NativeViolet,
-                                            strokeWidth = 2.dp
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Loading More Videos...", fontWeight = FontWeight.SemiBold)
-                                    } else {
-                                        Icon(Icons.Default.ExpandMore, contentDescription = null, tint = NativeViolet)
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Load More Videos", fontWeight = FontWeight.SemiBold, color = NativeViolet)
+                    if (filteredVideos.isEmpty() && videoSearchQuery.isNotBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.padding(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = null,
+                                    tint = if (isDark) TextLightMuted else TextDarkMuted,
+                                    modifier = Modifier.size(36.dp)
+                                )
+                                Text(
+                                    text = "No videos matching \"$videoSearchQuery\"",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = if (isDark) TextLightPrimary else TextDarkPrimary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                TextButton(onClick = { videoSearchQuery = "" }) {
+                                    Text("Clear search", color = NativeViolet)
+                                }
+                            }
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .weight(1f),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(filteredVideos, key = { it.messageId }) { video ->
+                                VideoItemCard(
+                                    video = video,
+                                    onClick = {
+                                        viewModel.selectedVideoForPlayback = video
+                                        onPlayVideo(video)
+                                    },
+                                    onDownloadClick = {
+                                        viewModel.downloadVideo(video.fileId)
+                                    },
+                                    onCancelClick = {
+                                        viewModel.cancelDownload(video.fileId)
+                                    }
+                                )
+                            }
+
+                            if (hasMoreVideos && videoSearchQuery.isBlank()) {
+                                item {
+                                    Button(
+                                        onClick = { viewModel.loadMoreVideos() },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 10.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (isDark) PillBgDark else PillBgLight,
+                                            contentColor = NativeViolet
+                                        ),
+                                        border = BorderStroke(1.dp, if (isDark) BorderDark else BorderLight),
+                                        shape = RoundedCornerShape(16.dp),
+                                        enabled = !isLoadingVideos
+                                    ) {
+                                        if (isLoadingVideos) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(18.dp),
+                                                color = NativeViolet,
+                                                strokeWidth = 2.dp
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text("Loading More Videos...", fontWeight = FontWeight.SemiBold)
+                                        } else {
+                                            Icon(Icons.Default.ExpandMore, contentDescription = null, tint = NativeViolet)
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text("Load More Videos", fontWeight = FontWeight.SemiBold, color = NativeViolet)
+                                        }
                                     }
                                 }
                             }

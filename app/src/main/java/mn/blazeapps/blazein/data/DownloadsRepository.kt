@@ -34,7 +34,7 @@ class DownloadsRepository(private val context: Context) {
         val videoExtensions = setOf("mp4", "mkv", "mov", "webm", "avi", "flv", "wmv", "m4v")
         
         allFiles.filter { videoExtensions.contains(it.extension.lowercase()) }
-            .sortedByDescending { it.lastModified() }
+            .sortedWith(compareByDescending<File> { it.lastModified() }.thenBy { it.name.lowercase() })
             .map { file ->
                 DownloadedVideo(
                     file = file,

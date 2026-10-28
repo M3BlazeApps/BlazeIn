@@ -379,7 +379,8 @@ class TelegramRepository private constructor(private val context: Context) : Cli
     }
 
     private fun updateVideosList() {
-        _videos.value = videoCache.values.sortedByDescending { it.messageId }
+        _videos.value = videoCache.values
+            .sortedWith(compareByDescending<VideoItem> { it.date }.thenBy { it.fileName.lowercase() })
     }
 
     private fun enrichVideosMetadata() {
@@ -427,6 +428,7 @@ class TelegramRepository private constructor(private val context: Context) : Cli
                     fileSize = expected,
                     width = v.width,
                     height = v.height,
+                    date = msg.date,
                     localPath = localPath,
                     isDownloaded = isDownloaded,
                     downloadProgress = progress,
@@ -459,6 +461,7 @@ class TelegramRepository private constructor(private val context: Context) : Cli
                     fileSize = expected,
                     width = 0,
                     height = 0,
+                    date = msg.date,
                     localPath = localPath,
                     isDownloaded = isDownloaded,
                     downloadProgress = progress,
@@ -485,6 +488,7 @@ class TelegramRepository private constructor(private val context: Context) : Cli
                     fileSize = expected,
                     width = anim.width,
                     height = anim.height,
+                    date = msg.date,
                     localPath = localPath,
                     isDownloaded = isDownloaded,
                     downloadProgress = progress,
@@ -740,12 +744,14 @@ class TelegramRepository private constructor(private val context: Context) : Cli
                     _activeDownloadFileId.value = null
                 }
 
-                item.copy(
+                val updatedItem = item.copy(
                     localPath = if (isDownloaded) file.local?.path else item.localPath,
                     isDownloaded = isDownloaded,
                     downloadProgress = progress,
                     isDownloading = file.local?.isDownloadingActive == true
                 )
+                videoCache[item.messageId] = updatedItem
+                updatedItem
             } else {
                 item
             }

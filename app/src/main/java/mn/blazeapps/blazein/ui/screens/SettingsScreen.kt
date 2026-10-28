@@ -898,7 +898,7 @@ fun SettingsScreen(
                             )
                         }
                         PillBadge(
-                            text = "v2.1.0",
+                            text = "v2.1.1",
                             backgroundColor = if (isDark) ColorBlueVioletDim else PillBgLight,
                             borderColor = if (isDark) Color(0x596366F1) else BorderLight,
                             contentColor = if (isDark) ColorBlueVioletSubtle else NativeViolet

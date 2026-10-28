@@ -11,16 +11,21 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +55,18 @@ fun DownloadsScreen(
     val isDark = LocalIsDarkTheme.current
     val videos by viewModel.downloadedVideos.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filteredVideos = remember(searchQuery, videos) {
+        if (searchQuery.isBlank()) {
+            videos
+        } else {
+            videos.filter {
+                it.file.name.contains(searchQuery, ignoreCase = true) ||
+                (it.metadata?.title?.contains(searchQuery, ignoreCase = true) == true)
+            }
+        }
+    }
 
     Scaffold(
         containerColor = Color.Transparent,
@@ -145,9 +162,57 @@ fun DownloadsScreen(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 PillBadge(
-                    text = "${videos.size} downloaded items",
+                    text = if (searchQuery.isNotBlank()) "${filteredVideos.size} of ${videos.size} downloaded items" else "${videos.size} downloaded items",
                     icon = Icons.Default.Movie
                 )
+
+                if (videos.isNotEmpty() || searchQuery.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = {
+                            Text(
+                                text = "Search ${videos.size} downloaded files…",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (isDark) TextLightMuted else TextDarkMuted
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Search",
+                                tint = if (isDark) TextLightMuted else TextDarkMuted,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Clear Search",
+                                        tint = if (isDark) TextLightMuted else TextDarkMuted,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = if (isDark) CardDark else CardWhite,
+                            unfocusedContainerColor = if (isDark) CardDark else CardWhite,
+                            focusedBorderColor = NativeViolet,
+                            unfocusedBorderColor = if (isDark) BorderDark else BorderLight,
+                            cursorColor = NativeViolet,
+                            focusedTextColor = if (isDark) TextLightPrimary else TextDarkPrimary,
+                            unfocusedTextColor = if (isDark) TextLightPrimary else TextDarkPrimary
+                        ),
+                        textStyle = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
         }
     ) { padding ->
@@ -189,13 +254,37 @@ fun DownloadsScreen(
                         )
                     }
                 }
+            } else if (filteredVideos.isEmpty() && searchQuery.isNotBlank()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            tint = if (isDark) TextLightMuted else TextDarkMuted,
+                            modifier = Modifier.size(36.dp)
+                        )
+                        Text(
+                            text = "No downloaded files matching \"$searchQuery\"",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = if (isDark) TextLightPrimary else TextDarkPrimary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        TextButton(onClick = { searchQuery = "" }) {
+                            Text("Clear search", color = NativeViolet)
+                        }
+                    }
+                }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    items(videos, key = { it.file.absolutePath }) { video ->
+                    items(filteredVideos, key = { it.file.absolutePath }) { video ->
                         DownloadedVideoCard(
                             video = video,
                             onPlay = { onPlayVideo(video.file) },

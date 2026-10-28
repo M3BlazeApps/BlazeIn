@@ -37,6 +37,7 @@ data class VideoItem(
     val fileSize: Long,
     val width: Int,
     val height: Int,
+    val date: Int = 0,
     val localPath: String? = null,
     val isDownloaded: Boolean = false,
     val downloadProgress: Float = 0f,
