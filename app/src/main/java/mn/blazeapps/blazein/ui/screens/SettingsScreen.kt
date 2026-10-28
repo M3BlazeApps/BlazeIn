@@ -3,6 +3,7 @@ package mn.blazeapps.blazein.ui.screens
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,11 +26,13 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import mn.blazeapps.blazein.R
 import mn.blazeapps.blazein.data.model.AuthState
 import mn.blazeapps.blazein.ui.theme.*
 import mn.blazeapps.blazein.ui.viewmodel.DownloadsViewModel
@@ -40,8 +43,10 @@ import mn.blazeapps.blazein.ui.viewmodel.TelegramViewModel
 fun SettingsScreen(
     viewModel: TelegramViewModel,
     downloadsViewModel: DownloadsViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onToggleTheme: (() -> Unit)? = null
 ) {
+    val isDark = LocalIsDarkTheme.current
     val authState by viewModel.authState.collectAsState()
     val scrollState = rememberScrollState()
     val context = LocalContext.current
@@ -51,21 +56,45 @@ fun SettingsScreen(
     var notifsEnabled by remember { mutableStateOf(true) }
     var autoPlayEnabled by remember { mutableStateOf(false) }
 
-    val figmaTextFieldColors = OutlinedTextFieldDefaults.colors(
-        focusedTextColor = TextPrimary,
-        unfocusedTextColor = TextPrimary,
-        focusedContainerColor = Color(0x186366F1),
-        unfocusedContainerColor = Color(0x106366F1),
-        disabledContainerColor = Color(0x0AFFFFFF),
-        focusedBorderColor = ColorBlueViolet,
-        unfocusedBorderColor = Color(0x406366F1),
-        focusedLabelColor = ColorBlueVioletSubtle,
-        unfocusedLabelColor = Color(0x80A5B4FC),
-        cursorColor = ColorBlueVioletLight,
-        disabledTextColor = TextMuted,
-        disabledBorderColor = Color(0x18FFFFFF),
-        disabledLabelColor = TextMuted
-    )
+    val primaryText = if (isDark) TextLightPrimary else TextDarkPrimary
+    val secondaryText = if (isDark) TextLightSecondary else TextDarkSecondary
+    val mutedText = if (isDark) TextLightMuted else TextDarkMuted
+
+    val figmaTextFieldColors = if (!isDark) {
+        OutlinedTextFieldDefaults.colors(
+            focusedTextColor = TextDarkPrimary,
+            unfocusedTextColor = TextDarkPrimary,
+            focusedContainerColor = PillBgLight,
+            unfocusedContainerColor = PillBgLight,
+            disabledContainerColor = Color(0x0A000000),
+            focusedBorderColor = NativeViolet,
+            unfocusedBorderColor = BorderLight,
+            focusedLabelColor = NativeViolet,
+            unfocusedLabelColor = TextDarkSecondary,
+            focusedPlaceholderColor = TextDarkMuted,
+            unfocusedPlaceholderColor = TextDarkMuted,
+            cursorColor = NativeViolet,
+            disabledTextColor = TextDarkMuted,
+            disabledBorderColor = BorderLight,
+            disabledLabelColor = TextDarkMuted
+        )
+    } else {
+        OutlinedTextFieldDefaults.colors(
+            focusedTextColor = TextPrimary,
+            unfocusedTextColor = TextPrimary,
+            focusedContainerColor = Color(0x186366F1),
+            unfocusedContainerColor = Color(0x106366F1),
+            disabledContainerColor = Color(0x0AFFFFFF),
+            focusedBorderColor = ColorBlueViolet,
+            unfocusedBorderColor = Color(0x406366F1),
+            focusedLabelColor = ColorBlueVioletSubtle,
+            unfocusedLabelColor = Color(0x80A5B4FC),
+            cursorColor = ColorBlueVioletLight,
+            disabledTextColor = TextMuted,
+            disabledBorderColor = Color(0x18FFFFFF),
+            disabledLabelColor = TextMuted
+        )
+    }
 
     Scaffold(
         containerColor = Color.Transparent,
@@ -87,10 +116,10 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         SquircleIconBox(
-                            size = 44.dp,
-                            shape = RoundedCornerShape(14.dp),
-                            brush = Brush.linearGradient(listOf(ColorPurple, ColorOrange)),
-                            shadowColor = Color(0x668B5CF6)
+                            size = 42.dp,
+                            shape = RoundedCornerShape(13.dp),
+                            brush = Brush.linearGradient(listOf(NativeViolet, Color(0xFFFF9100))),
+                            shadowColor = Color(0x606C5CE7)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Settings,
@@ -103,11 +132,11 @@ fun SettingsScreen(
                             Text(
                                 text = "Settings",
                                 style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Bold,
+                                    fontWeight = FontWeight.ExtraBold,
                                     letterSpacing = (-0.5).sp,
                                     fontSize = 20.sp
                                 ),
-                                color = Color.White
+                                color = primaryText
                             )
                             Text(
                                 text = "BlazeIn Configuration",
@@ -115,24 +144,44 @@ fun SettingsScreen(
                                     fontWeight = FontWeight.Medium,
                                     fontSize = 11.sp
                                 ),
-                                color = ColorOrange
+                                color = if (isDark) NativeVioletLight else NativeViolet
                             )
                         }
                     }
 
-                    GlassIconButton(
-                        onClick = onNavigateBack,
-                        size = 36.dp,
-                        shape = RoundedCornerShape(12.dp),
-                        containerColor = GlassBg,
-                        borderAlphaTop = 0.25f
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            modifier = Modifier.size(17.dp),
-                            tint = Color.White
-                        )
+                        if (onToggleTheme != null) {
+                            GlassIconButton(
+                                onClick = onToggleTheme,
+                                size = 36.dp,
+                                shape = RoundedCornerShape(12.dp),
+                                containerColor = if (isDark) CardDark else CardWhite
+                            ) {
+                                Icon(
+                                    imageVector = if (isDark) Icons.Default.LightMode else Icons.Default.NightsStay,
+                                    contentDescription = "Toggle Theme",
+                                    modifier = Modifier.size(17.dp),
+                                    tint = if (isDark) Color(0xFFFFB74D) else TextDarkPrimary
+                                )
+                            }
+                        }
+
+                        GlassIconButton(
+                            onClick = onNavigateBack,
+                            size = 36.dp,
+                            shape = RoundedCornerShape(12.dp),
+                            containerColor = if (isDark) CardDark else CardWhite
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                modifier = Modifier.size(17.dp),
+                                tint = primaryText
+                            )
+                        }
                     }
                 }
 
@@ -148,25 +197,25 @@ fun SettingsScreen(
                         PillBadge(
                             text = "Logged in · $userName",
                             icon = Icons.Default.Check,
-                            backgroundColor = ColorGreenDim,
-                            borderColor = Color(0x5922C55E),
-                            contentColor = ColorGreenLight
+                            backgroundColor = if (isDark) ColorGreenDim else CatMintBg,
+                            borderColor = if (isDark) Color(0x5922C55E) else Color(0x6016A34A),
+                            contentColor = if (isDark) ColorGreenLight else CatMintIcon
                         )
                     } else {
                         PillBadge(
                             text = "Not logged in",
                             icon = Icons.Default.Lock,
-                            backgroundColor = ColorRedDim,
-                            borderColor = Color(0x59EF4444),
-                            contentColor = ColorRedLight
+                            backgroundColor = if (isDark) ColorRedDim else CatRoseBg,
+                            borderColor = if (isDark) Color(0x59EF4444) else Color(0x60E11D48),
+                            contentColor = if (isDark) ColorRedLight else CatRoseIcon
                         )
                     }
 
                     PillBadge(
                         text = "Encrypted locally",
-                        backgroundColor = ColorBlueVioletDim,
-                        borderColor = Color(0x596366F1),
-                        contentColor = ColorBlueVioletSubtle
+                        backgroundColor = if (isDark) ColorBlueVioletDim else PillBgLight,
+                        borderColor = if (isDark) Color(0x596366F1) else BorderLight,
+                        contentColor = if (isDark) ColorBlueVioletSubtle else NativeViolet
                     )
                 }
             }
@@ -188,13 +237,27 @@ fun SettingsScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .shadow(
+                            elevation = if (isDark) 0.dp else 4.dp,
+                            shape = RoundedCornerShape(16.dp),
+                            spotColor = Color(0x126C5CE7)
+                        )
                         .clip(RoundedCornerShape(16.dp))
                         .background(
-                            brush = Brush.linearGradient(
-                                listOf(Color(0x2E6366F1), Color(0x1F8B5CF6))
-                            )
+                            brush = if (isDark) {
+                                Brush.linearGradient(
+                                    listOf(Color(0x2E6366F1), Color(0x1F8B5CF6))
+                                )
+                            } else {
+                                Brush.linearGradient(
+                                    listOf(CardWhite, PillBgLight)
+                                )
+                            }
                         )
-                        .border(BorderStroke(1.dp, Color(0x456366F1)), RoundedCornerShape(16.dp))
+                        .border(
+                            BorderStroke(1.dp, if (isDark) Color(0x456366F1) else BorderLight),
+                            RoundedCornerShape(16.dp)
+                        )
                         .padding(14.dp)
                 ) {
                     Row(
@@ -236,7 +299,7 @@ fun SettingsScreen(
                                 text = "Session Status",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = primaryText
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
@@ -253,12 +316,16 @@ fun SettingsScreen(
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (authState is AuthState.Ready) ColorGreenLight else ColorOrangeLight
+                                color = if (authState is AuthState.Ready) {
+                                    if (isDark) ColorGreenLight else CatMintIcon
+                                } else {
+                                    if (isDark) ColorOrangeLight else CatAmberIcon
+                                }
                             )
                             Text(
                                 text = "Active & encrypted locally.",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = TextMuted
+                                color = secondaryText
                             )
                         }
 
@@ -281,16 +348,16 @@ fun SettingsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(14.dp))
-                            .background(ColorRedDim)
-                            .border(BorderStroke(1.dp, Color(0x66EF4444)), RoundedCornerShape(14.dp))
+                            .background(if (isDark) ColorRedDim else CatRoseBg)
+                            .border(BorderStroke(1.dp, if (isDark) Color(0x66EF4444) else Color(0x40E11D48)), RoundedCornerShape(14.dp))
                             .padding(12.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(Icons.Default.Error, contentDescription = null, tint = ColorRedLight)
-                            Text(text = error, color = ColorRedLight, style = MaterialTheme.typography.bodySmall)
+                            Icon(Icons.Default.Error, contentDescription = null, tint = if (isDark) ColorRedLight else CatRoseIcon)
+                            Text(text = error, color = if (isDark) ColorRedLight else CatRoseIcon, style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
@@ -324,12 +391,12 @@ fun SettingsScreen(
                                 text = "Telegram API Credentials",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = primaryText
                             )
                             Text(
                                 text = "my.telegram.org → API development tools",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = TextMuted
+                                color = secondaryText
                             )
                         }
                     }
@@ -391,13 +458,13 @@ fun SettingsScreen(
                             text = "Phone Number",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = primaryText
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Enter your mobile phone number with country code.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextSecondary
+                            color = secondaryText
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -420,7 +487,7 @@ fun SettingsScreen(
                             Button(
                                 onClick = { viewModel.submitPhoneNumber() },
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = ColorBlueViolet,
+                                    containerColor = NativeViolet,
                                     contentColor = Color.White
                                 ),
                                 shape = RoundedCornerShape(12.dp),
@@ -444,13 +511,13 @@ fun SettingsScreen(
                             text = "Enter Verification Code",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = primaryText
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "A verification code has been sent to your other Telegram apps or SMS.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextSecondary
+                            color = secondaryText
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -494,13 +561,13 @@ fun SettingsScreen(
                             text = "Two-Step Verification (2FA)",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = primaryText
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Your account has Two-Step Verification enabled. Enter your Cloud Password.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextSecondary
+                            color = secondaryText
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -561,7 +628,7 @@ fun SettingsScreen(
                             text = "Playback Preferences",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = primaryText
                         )
                     }
 
@@ -576,8 +643,17 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column {
-                            Text("Notifications", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = Color.White)
-                            Text("Download & stream alerts", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                            Text(
+                                text = "Notifications",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = primaryText
+                            )
+                            Text(
+                                text = "Download & stream alerts",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = secondaryText
+                            )
                         }
                         Switch(
                             checked = notifsEnabled,
@@ -585,13 +661,17 @@ fun SettingsScreen(
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.White,
                                 checkedTrackColor = ColorBlueViolet,
-                                uncheckedThumbColor = TextSecondary,
-                                uncheckedTrackColor = Color(0x1FFFFFFF)
+                                uncheckedThumbColor = if (isDark) TextSecondary else Color.White,
+                                uncheckedTrackColor = if (isDark) Color(0x1FFFFFFF) else Color(0xFFE2E8F0),
+                                uncheckedBorderColor = if (isDark) Color.Transparent else BorderLight
                             )
                         )
                     }
 
-                    HorizontalDivider(color = Color(0x12FFFFFF), thickness = 0.5.dp)
+                    HorizontalDivider(
+                        color = if (isDark) Color(0x12FFFFFF) else BorderLight,
+                        thickness = 0.5.dp
+                    )
 
                     // Auto-play Next Toggle
                     Row(
@@ -602,8 +682,17 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column {
-                            Text("Auto-play Next", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = Color.White)
-                            Text("Continue to next video", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                            Text(
+                                text = "Auto-play Next",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = primaryText
+                            )
+                            Text(
+                                text = "Continue to next video",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = secondaryText
+                            )
                         }
                         Switch(
                             checked = autoPlayEnabled,
@@ -611,8 +700,9 @@ fun SettingsScreen(
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.White,
                                 checkedTrackColor = ColorOrange,
-                                uncheckedThumbColor = TextSecondary,
-                                uncheckedTrackColor = Color(0x1FFFFFFF)
+                                uncheckedThumbColor = if (isDark) TextSecondary else Color.White,
+                                uncheckedTrackColor = if (isDark) Color(0x1FFFFFFF) else Color(0xFFE2E8F0),
+                                uncheckedBorderColor = if (isDark) Color.Transparent else BorderLight
                             )
                         )
                     }
@@ -647,27 +737,30 @@ fun SettingsScreen(
                                 text = "Downloads Storage",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = primaryText
                             )
                             Text(
                                 text = "Clear downloaded videos to free device space.",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = TextMuted
+                                color = secondaryText
                             )
                         }
                         // Clear button matching Figma Make
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(ColorOrangeDim)
-                                .border(BorderStroke(1.dp, Color(0x66F97316)), RoundedCornerShape(10.dp))
+                                .background(if (isDark) ColorOrangeDim else CatAmberBg)
+                                .border(
+                                    BorderStroke(1.dp, if (isDark) Color(0x66F97316) else Color(0x60EA580C)),
+                                    RoundedCornerShape(10.dp)
+                                )
                                 .clickable { showDeleteAllConfirmation = true }
                                 .padding(horizontal = 14.dp, vertical = 8.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = "Clear",
-                                color = ColorOrangeLight,
+                                color = if (isDark) ColorOrangeLight else CatAmberIcon,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -680,13 +773,27 @@ fun SettingsScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .shadow(
+                                elevation = if (isDark) 0.dp else 4.dp,
+                                shape = RoundedCornerShape(16.dp),
+                                spotColor = Color(0x12EA580C)
+                            )
                             .clip(RoundedCornerShape(16.dp))
                             .background(
-                                brush = Brush.linearGradient(
-                                    listOf(Color(0x24F97316), Color(0x12FB923C))
-                                )
+                                brush = if (isDark) {
+                                    Brush.linearGradient(
+                                        listOf(Color(0x24F97316), Color(0x12FB923C))
+                                    )
+                                } else {
+                                    Brush.linearGradient(
+                                        listOf(CardWhite, Color(0xFFFFF7ED))
+                                    )
+                                }
                             )
-                            .border(BorderStroke(1.dp, Color(0x45F97316)), RoundedCornerShape(16.dp))
+                            .border(
+                                BorderStroke(1.dp, if (isDark) Color(0x45F97316) else Color(0x40FB923C)),
+                                RoundedCornerShape(16.dp)
+                            )
                             .padding(16.dp)
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -698,14 +805,17 @@ fun SettingsScreen(
                                     modifier = Modifier
                                         .size(36.dp)
                                         .clip(RoundedCornerShape(10.dp))
-                                        .background(ColorOrangeDim)
-                                        .border(BorderStroke(1.dp, Color(0x66F97316)), RoundedCornerShape(10.dp)),
+                                        .background(if (isDark) ColorOrangeDim else CatAmberBg)
+                                        .border(
+                                            BorderStroke(1.dp, if (isDark) Color(0x66F97316) else Color(0x60EA580C)),
+                                            RoundedCornerShape(10.dp)
+                                        ),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Person,
                                         contentDescription = null,
-                                        tint = ColorOrangeLight,
+                                        tint = if (isDark) ColorOrangeLight else CatAmberIcon,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -714,12 +824,12 @@ fun SettingsScreen(
                                         text = "Session Management",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.White
+                                        color = primaryText
                                     )
                                     Text(
                                         text = "Encrypted · stays active until logout",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = TextMuted
+                                        color = secondaryText
                                     )
                                 }
                             }
@@ -727,15 +837,22 @@ fun SettingsScreen(
                             Button(
                                 onClick = { viewModel.logout() },
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = ColorRedDim,
-                                    contentColor = ColorRedLight
+                                    containerColor = if (isDark) ColorRedDim else CatRoseBg,
+                                    contentColor = if (isDark) ColorRedLight else CatRoseIcon
                                 ),
                                 shape = RoundedCornerShape(14.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .border(BorderStroke(1.dp, Color(0x66EF4444)), RoundedCornerShape(14.dp))
+                                    .border(
+                                        BorderStroke(1.dp, if (isDark) Color(0x66EF4444) else Color(0x60E11D48)),
+                                        RoundedCornerShape(14.dp)
+                                    )
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, tint = ColorRedLight)
+                                Icon(
+                                    Icons.AutoMirrored.Filled.Logout,
+                                    contentDescription = null,
+                                    tint = if (isDark) ColorRedLight else CatRoseIcon
+                                )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Log Out / Clear Session", fontWeight = FontWeight.SemiBold)
                             }
@@ -754,38 +871,136 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_blazein_logo),
+                            contentDescription = "BlazeIn Logo",
+                            modifier = Modifier
+                                .size(44.dp)
+                                .shadow(
+                                    elevation = 8.dp,
+                                    shape = RoundedCornerShape(14.dp),
+                                    spotColor = Color(0x556366F1),
+                                    ambientColor = Color(0x556366F1)
+                                )
+                                .clip(RoundedCornerShape(14.dp))
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "BlazeIn v2.1",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = primaryText
+                            )
+                            Text(
+                                text = "Telegram Video Streaming",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = secondaryText
+                            )
+                        }
+                        PillBadge(
+                            text = "v2.1.0",
+                            backgroundColor = if (isDark) ColorBlueVioletDim else PillBgLight,
+                            borderColor = if (isDark) Color(0x596366F1) else BorderLight,
+                            contentColor = if (isDark) ColorBlueVioletSubtle else NativeViolet
+                        )
+                    }
+                }
+
+                // 10. GitHub Repository Card
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    backgroundColor = GlassBg,
+                    contentPadding = PaddingValues(16.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         SquircleIconBox(
                             size = 44.dp,
                             shape = RoundedCornerShape(14.dp),
-                            brush = Brush.linearGradient(listOf(ColorBlueViolet, ColorOrange)),
-                            shadowColor = Color(0x556366F1)
+                            brush = Brush.linearGradient(listOf(Color(0xFF24292E), Color(0xFF1B1F23))),
+                            shadowColor = Color(0x66000000)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Bolt,
-                                contentDescription = null,
+                                imageVector = Icons.Default.Code,
+                                contentDescription = "GitHub",
                                 tint = Color.White,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "BlazeIn v2.0",
+                                text = "GitHub Repository",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = primaryText
                             )
                             Text(
-                                text = "Telegram Video Streaming",
+                                text = "https://github.com/M3BlazeApps/BlazeIn",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = TextMuted
+                                color = if (isDark) ColorBlueVioletSubtle else NativeViolet
                             )
                         }
-                        PillBadge(
-                            text = "v2.0.0",
-                            backgroundColor = ColorBlueVioletDim,
-                            borderColor = Color(0x596366F1),
-                            contentColor = ColorBlueVioletSubtle
-                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "BlazeIn is completely open-source. Explore the codebase, check releases, report issues, or star the project on GitHub.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = secondaryText
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                val intent = android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse("https://github.com/M3BlazeApps/BlazeIn")
+                                )
+                                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                try {
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Cannot open browser: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = NativeViolet,
+                                contentColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.OpenInBrowser, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Open in GitHub", fontWeight = FontWeight.SemiBold)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                val clip = android.content.ClipData.newPlainText("BlazeIn GitHub", "https://github.com/M3BlazeApps/BlazeIn")
+                                clipboard.setPrimaryClip(clip)
+                                Toast.makeText(context, "GitHub link copied to clipboard!", Toast.LENGTH_SHORT).show()
+                            },
+                            border = BorderStroke(1.dp, if (isDark) Color(0x4D6366F1) else BorderLight),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = if (isDark) ColorBlueVioletLight else NativeViolet
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Copy Link", fontWeight = FontWeight.SemiBold)
+                        }
                     }
                 }
 
@@ -798,11 +1013,14 @@ fun SettingsScreen(
     if (showDeleteAllConfirmation) {
         AlertDialog(
             onDismissRequest = { showDeleteAllConfirmation = false },
-            containerColor = Color(0xF2080B1A),
-            titleContentColor = Color.White,
-            textContentColor = TextSecondary,
+            containerColor = if (isDark) Color(0xF2080B1A) else CardWhite,
+            titleContentColor = primaryText,
+            textContentColor = secondaryText,
             shape = RoundedCornerShape(20.dp),
-            modifier = Modifier.border(BorderStroke(1.dp, Color(0x336366F1)), RoundedCornerShape(20.dp)),
+            modifier = Modifier.border(
+                BorderStroke(1.dp, if (isDark) Color(0x336366F1) else BorderLight),
+                RoundedCornerShape(20.dp)
+            ),
             title = {
                 Text(
                     text = "Delete All Downloads?",
@@ -837,7 +1055,11 @@ fun SettingsScreen(
                 TextButton(
                     onClick = { showDeleteAllConfirmation = false }
                 ) {
-                    Text("Cancel", color = ColorBlueVioletSubtle, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "Cancel",
+                        color = if (isDark) ColorBlueVioletSubtle else NativeViolet,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         )

@@ -43,9 +43,12 @@ class DownloadsViewModel(application: Application) : AndroidViewModel(applicatio
             for (i in updatedList.indices) {
                 val video = updatedList[i]
                 if (video.metadata == null) {
-                    val metadata = repository.fetchMetadata(video.title)
+                    val metadata = repository.fetchMetadata(video.file.name)
                     if (metadata != null) {
-                        updatedList[i] = video.copy(metadata = metadata)
+                        updatedList[i] = video.copy(
+                            title = if (metadata.year.isNotBlank()) "${metadata.title} (${metadata.year})" else metadata.title,
+                            metadata = metadata
+                        )
                         _downloadedVideos.value = updatedList.toList()
                     }
                 }

@@ -42,88 +42,93 @@ fun GlassBackground(
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        BgMeshIndigo,
-                        BgMeshAzure,
-                        BgDeep,
-                        BgMeshOrange
+    val isDark = LocalIsDarkTheme.current
+    if (!isDark) {
+        NativeOfficeBackground(isDark = false, modifier = modifier, content = content)
+    } else {
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            BgMeshIndigo,
+                            BgMeshAzure,
+                            BgDeep,
+                            BgMeshOrange
+                        )
                     )
                 )
+        ) {
+            // Top-Left Glowing Orb (Indigo / Blue-Violet)
+            Box(
+                modifier = Modifier
+                    .size(360.dp)
+                    .offset(x = (-80).dp, y = (-80).dp)
+                    .background(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                Color(0x606366F1),
+                                Color(0x286366F1),
+                                Color.Transparent
+                            )
+                        )
+                    )
             )
-    ) {
-        // Top-Left Glowing Orb (Indigo / Blue-Violet)
-        Box(
-            modifier = Modifier
-                .size(360.dp)
-                .offset(x = (-80).dp, y = (-80).dp)
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color(0x606366F1),
-                            Color(0x286366F1),
-                            Color.Transparent
+
+            // Top-Right Glowing Orb (Electric Orange)
+            Box(
+                modifier = Modifier
+                    .size(320.dp)
+                    .align(Alignment.TopEnd)
+                    .offset(x = 80.dp, y = (-40).dp)
+                    .background(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                Color(0x50F97316),
+                                Color(0x20F97316),
+                                Color.Transparent
+                            )
                         )
                     )
-                )
-        )
+            )
 
-        // Top-Right Glowing Orb (Electric Orange)
-        Box(
-            modifier = Modifier
-                .size(320.dp)
-                .align(Alignment.TopEnd)
-                .offset(x = 80.dp, y = (-40).dp)
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color(0x50F97316),
-                            Color(0x20F97316),
-                            Color.Transparent
+            // Bottom-Right Glowing Orb (Violet / Purple)
+            Box(
+                modifier = Modifier
+                    .size(340.dp)
+                    .align(Alignment.BottomEnd)
+                    .offset(x = 60.dp, y = 60.dp)
+                    .background(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                Color(0x558B5CF6),
+                                Color(0x228B5CF6),
+                                Color.Transparent
+                            )
                         )
                     )
-                )
-        )
+            )
 
-        // Bottom-Right Glowing Orb (Violet / Purple)
-        Box(
-            modifier = Modifier
-                .size(340.dp)
-                .align(Alignment.BottomEnd)
-                .offset(x = 60.dp, y = 60.dp)
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color(0x558B5CF6),
-                            Color(0x228B5CF6),
-                            Color.Transparent
+            // Bottom-Left Glowing Orb (Warm Orange)
+            Box(
+                modifier = Modifier
+                    .size(300.dp)
+                    .align(Alignment.BottomStart)
+                    .offset(x = (-60).dp, y = 80.dp)
+                    .background(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                Color(0x40F97316),
+                                Color(0x15F97316),
+                                Color.Transparent
+                            )
                         )
                     )
-                )
-        )
+            )
 
-        // Bottom-Left Glowing Orb (Warm Orange)
-        Box(
-            modifier = Modifier
-                .size(300.dp)
-                .align(Alignment.BottomStart)
-                .offset(x = (-60).dp, y = 80.dp)
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color(0x40F97316),
-                            Color(0x15F97316),
-                            Color.Transparent
-                        )
-                    )
-                )
-        )
-
-        content()
+            content()
+        }
     }
 }
 
@@ -174,10 +179,16 @@ fun GlassCard(
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val isDark = LocalIsDarkTheme.current
+    val effectiveBg = if (!isDark && backgroundColor == GlassBg) CardWhite else backgroundColor
+    val effectiveBorder = if (!isDark && borderColor == Color.White) BorderLight else borderColor
+    val effectiveAlphaTop = if (!isDark && borderColor == Color.White) 1f else borderAlphaTop
+    val effectiveAlphaBottom = if (!isDark && borderColor == Color.White) 1f else borderAlphaBottom
+
     val clickModifier = if (onClick != null) {
         Modifier.clickable(
             interactionSource = remember { MutableInteractionSource() },
-            indication = ripple(color = Color.White.copy(alpha = 0.2f)),
+            indication = ripple(color = if (isDark) Color.White.copy(alpha = 0.2f) else NativeViolet.copy(alpha = 0.15f)),
             onClick = onClick
         )
     } else {
@@ -186,13 +197,18 @@ fun GlassCard(
 
     Box(
         modifier = modifier
-            .shadow(elevation = 6.dp, shape = shape, spotColor = Color(0x30000000), ambientColor = Color(0x15000000))
+            .shadow(
+                elevation = 6.dp,
+                shape = shape,
+                spotColor = if (isDark) Color(0x30000000) else Color(0x126C5CE7),
+                ambientColor = if (isDark) Color(0x15000000) else Color(0x086C5CE7)
+            )
             .glassEffect(
                 shape = shape,
-                backgroundColor = backgroundColor,
-                borderColor = borderColor,
-                borderAlphaTop = borderAlphaTop,
-                borderAlphaBottom = borderAlphaBottom
+                backgroundColor = effectiveBg,
+                borderColor = effectiveBorder,
+                borderAlphaTop = effectiveAlphaTop,
+                borderAlphaBottom = effectiveAlphaBottom
             )
             .then(clickModifier)
     ) {
@@ -218,25 +234,30 @@ fun GlassIconButton(
     contentColor: Color = TextPrimary,
     content: @Composable () -> Unit
 ) {
+    val isDark = LocalIsDarkTheme.current
+    val effectiveBg = if (!isDark && containerColor == GlassBg) CardWhite else containerColor
+    val effectiveContent = if (!isDark && contentColor == TextPrimary) TextDarkPrimary else contentColor
+
     Box(
         modifier = modifier
             .size(size)
             .clip(shape)
             .glassEffect(
                 shape = shape,
-                backgroundColor = containerColor,
-                borderAlphaTop = borderAlphaTop,
-                borderAlphaBottom = 0.08f
+                backgroundColor = effectiveBg,
+                borderColor = if (isDark) Color.White else BorderLight,
+                borderAlphaTop = if (isDark) borderAlphaTop else 1f,
+                borderAlphaBottom = if (isDark) 0.08f else 1f
             )
             .clickable(
                 enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(bounded = true, color = Color.White.copy(alpha = 0.25f)),
+                indication = ripple(bounded = true, color = if (isDark) Color.White.copy(alpha = 0.25f) else NativeViolet.copy(alpha = 0.15f)),
                 onClick = onClick
             ),
         contentAlignment = Alignment.Center
     ) {
-        CompositionLocalProvider(LocalContentColor provides contentColor) {
+        CompositionLocalProvider(LocalContentColor provides effectiveContent) {
             content()
         }
     }

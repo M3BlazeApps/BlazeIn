@@ -13,7 +13,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -30,7 +32,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import mn.blazeapps.blazein.data.DownloadedVideo
 import mn.blazeapps.blazein.ui.theme.*
 import mn.blazeapps.blazein.ui.viewmodel.DownloadsViewModel
@@ -43,8 +44,10 @@ import kotlin.math.pow
 fun DownloadsScreen(
     viewModel: DownloadsViewModel,
     onNavigateBack: () -> Unit,
-    onPlayVideo: (File) -> Unit
+    onPlayVideo: (File) -> Unit,
+    onToggleTheme: (() -> Unit)? = null
 ) {
+    val isDark = LocalIsDarkTheme.current
     val videos by viewModel.downloadedVideos.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
@@ -67,10 +70,10 @@ fun DownloadsScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         SquircleIconBox(
-                            size = 44.dp,
-                            shape = RoundedCornerShape(14.dp),
-                            brush = Brush.linearGradient(listOf(ColorBlueViolet, ColorOrange)),
-                            shadowColor = Color(0x666366F1)
+                            size = 42.dp,
+                            shape = RoundedCornerShape(13.dp),
+                            brush = Brush.linearGradient(listOf(NativeViolet, Color(0xFFFF9100))),
+                            shadowColor = Color(0x606C5CE7)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Download,
@@ -83,11 +86,11 @@ fun DownloadsScreen(
                             Text(
                                 text = "Downloads",
                                 style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Bold,
+                                    fontWeight = FontWeight.ExtraBold,
                                     letterSpacing = (-0.5).sp,
                                     fontSize = 20.sp
                                 ),
-                                color = Color.White
+                                color = if (isDark) TextLightPrimary else TextDarkPrimary
                             )
                             Text(
                                 text = "Offline Media Manager",
@@ -95,24 +98,47 @@ fun DownloadsScreen(
                                     fontWeight = FontWeight.Medium,
                                     fontSize = 11.sp
                                 ),
-                                color = ColorOrange
+                                color = if (isDark) NativeVioletLight else NativeViolet
                             )
                         }
                     }
 
-                    GlassIconButton(
-                        onClick = onNavigateBack,
-                        size = 36.dp,
-                        shape = RoundedCornerShape(12.dp),
-                        containerColor = GlassBg,
-                        borderAlphaTop = 0.25f
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            modifier = Modifier.size(17.dp),
-                            tint = Color.White
-                        )
+                        if (onToggleTheme != null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isDark) CardDark else CardWhite)
+                                    .border(BorderStroke(1.dp, if (isDark) BorderDark else BorderLight), CircleShape)
+                                    .clickable(onClick = onToggleTheme),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = if (isDark) Icons.Default.LightMode else Icons.Default.NightsStay,
+                                    contentDescription = "Toggle Theme",
+                                    tint = if (isDark) Color(0xFFFFB74D) else TextDarkPrimary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+
+                        GlassIconButton(
+                            onClick = onNavigateBack,
+                            size = 36.dp,
+                            shape = RoundedCornerShape(12.dp),
+                            containerColor = if (isDark) CardDark else CardWhite
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                modifier = Modifier.size(17.dp),
+                                tint = if (isDark) TextLightPrimary else TextDarkPrimary
+                            )
+                        }
                     }
                 }
 
@@ -128,11 +154,40 @@ fun DownloadsScreen(
         GlassBackground(modifier = Modifier.fillMaxSize().padding(padding)) {
             if (isLoading && videos.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = ColorBlueVioletLight)
+                    CircularProgressIndicator(color = NativeViolet)
                 }
             } else if (videos.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No downloaded videos found.", color = TextMuted)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.padding(32.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(if (isDark) PillBgDark else PillBgLight),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Download,
+                                contentDescription = null,
+                                tint = NativeViolet,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                        Text(
+                            text = "No downloaded videos found",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = if (isDark) TextLightPrimary else TextDarkPrimary
+                        )
+                        Text(
+                            text = "Download videos from channels for offline playback.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isDark) TextLightSecondary else TextDarkSecondary
+                        )
+                    }
                 }
             } else {
                 LazyColumn(
@@ -159,10 +214,12 @@ fun DownloadedVideoCard(
     onPlay: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val isDark = LocalIsDarkTheme.current
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        backgroundColor = GlassBg,
+        shape = RoundedCornerShape(18.dp),
+        backgroundColor = if (isDark) CardDark else CardWhite,
+        borderColor = if (isDark) BorderDark else BorderLight,
         borderAlphaTop = 0.22f,
         borderAlphaBottom = 0.08f,
         contentPadding = PaddingValues(0.dp)
@@ -172,50 +229,35 @@ fun DownloadedVideoCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(14.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Movie Poster or Video Thumbnail
-                Box(
-                    modifier = Modifier
-                        .width(90.dp)
-                        .height(130.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            brush = Brush.linearGradient(
-                                listOf(Color(0x406366F1), Color(0x26F97316))
-                            )
-                        )
-                        .border(BorderStroke(1.dp, Color(0x18FFFFFF)), RoundedCornerShape(12.dp)),
-                    contentAlignment = Alignment.Center
+                // Compact Video Squircle Icon
+                SquircleIconBox(
+                    size = 42.dp,
+                    shape = RoundedCornerShape(12.dp),
+                    brush = Brush.linearGradient(listOf(NativeViolet, ColorBlueVioletLight)),
+                    shadowColor = Color(0x336C5CE7)
                 ) {
-                    if (video.metadata?.posterUrl?.isNotEmpty() == true) {
-                        AsyncImage(
-                            model = video.metadata.posterUrl,
-                            contentDescription = "Poster",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Movie,
-                            contentDescription = null,
-                            tint = ColorBlueVioletLight,
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Movie,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
                 }
 
-                // Details
+                // Details - full file name across 2-3 lines
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = video.metadata?.title ?: video.title,
+                        text = video.file.name,
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
                             lineHeight = 20.sp
                         ),
-                        color = Color.White,
-                        maxLines = 2,
+                        color = if (isDark) TextLightPrimary else TextDarkPrimary,
+                        maxLines = 3,
                         overflow = TextOverflow.Ellipsis
                     )
 
@@ -229,44 +271,39 @@ fun DownloadedVideoCard(
                             if (video.metadata.year.isNotBlank()) {
                                 PillBadge(
                                     text = video.metadata.year,
-                                    backgroundColor = ColorBlueVioletDim,
-                                    borderColor = Color(0x406366F1),
-                                    contentColor = ColorBlueVioletSubtle
+                                    backgroundColor = if (isDark) PillBgDark else PillBgLight,
+                                    borderColor = if (isDark) BorderDark else BorderLight,
+                                    contentColor = NativeViolet
                                 )
                             }
                             if (video.metadata.genre.isNotBlank()) {
                                 PillBadge(
                                     text = video.metadata.genre,
-                                    backgroundColor = ColorOrangeDim,
-                                    borderColor = Color(0x40F97316),
-                                    contentColor = ColorOrangeLight
+                                    backgroundColor = CatAmberBg,
+                                    borderColor = CatAmberGlow,
+                                    contentColor = CatAmberIcon
                                 )
                             }
+                            Text(
+                                text = "• ${formatFileSize(video.size)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (isDark) TextLightMuted else TextDarkMuted
+                            )
                         }
-
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        Text(
-                            text = video.metadata.plot,
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 12.sp,
-                                lineHeight = 16.sp
-                            ),
-                            color = TextMuted,
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis
-                        )
                     } else {
                         Text(
                             text = "Size: ${formatFileSize(video.size)}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextMuted
+                            color = if (isDark) TextLightMuted else TextDarkMuted
                         )
                     }
                 }
             }
 
-            HorizontalDivider(color = Color(0x12FFFFFF), thickness = 0.5.dp)
+            HorizontalDivider(
+                color = if (isDark) Color(0x12FFFFFF) else BorderLight,
+                thickness = 0.5.dp
+            )
 
             // Bottom Actions Bar
             Row(
@@ -279,7 +316,7 @@ fun DownloadedVideoCard(
                 Text(
                     text = formatFileSize(video.size),
                     style = MaterialTheme.typography.labelMedium,
-                    color = TextMuted
+                    color = if (isDark) TextLightMuted else TextDarkMuted
                 )
 
                 Row(
@@ -291,35 +328,30 @@ fun DownloadedVideoCard(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(ColorRedDim)
-                            .border(BorderStroke(1.dp, Color(0x66EF4444)), CircleShape)
+                            .background(CatRoseBg)
+                            .border(BorderStroke(1.dp, CatRoseGlow), CircleShape)
                             .clickable(onClick = onDelete),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Delete",
-                            tint = ColorRedLight,
+                            tint = CatRoseIcon,
                             modifier = Modifier.size(17.dp)
                         )
                     }
 
-                    // Play Button (btn-orange)
+                    // Play Button
                     Row(
                         modifier = Modifier
                             .height(36.dp)
                             .shadow(
                                 elevation = 6.dp,
                                 shape = RoundedCornerShape(18.dp),
-                                spotColor = Color(0x66F97316),
-                                ambientColor = Color(0x33F97316)
+                                spotColor = if (isDark) Color(0x40000000) else Color(0x306C5CE7)
                             )
                             .clip(RoundedCornerShape(18.dp))
-                            .background(
-                                brush = Brush.linearGradient(
-                                    listOf(ColorOrange, ColorOrangeLight)
-                                )
-                            )
+                            .background(NativeViolet)
                             .clickable(onClick = onPlay)
                             .padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,

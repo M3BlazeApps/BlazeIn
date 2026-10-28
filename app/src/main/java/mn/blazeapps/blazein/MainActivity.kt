@@ -7,16 +7,16 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import mn.blazeapps.blazein.data.UserPreferences
 import mn.blazeapps.blazein.data.model.AuthState
+import mn.blazeapps.blazein.data.model.VideoItem
 import mn.blazeapps.blazein.ui.screens.DownloadsScreen
 import mn.blazeapps.blazein.ui.screens.HomeScreen
 import mn.blazeapps.blazein.ui.screens.SettingsScreen
@@ -24,19 +24,27 @@ import mn.blazeapps.blazein.ui.screens.VideoPlayerScreen
 import mn.blazeapps.blazein.ui.theme.BlazeInTheme
 import mn.blazeapps.blazein.ui.viewmodel.DownloadsViewModel
 import mn.blazeapps.blazein.ui.viewmodel.TelegramViewModel
-import mn.blazeapps.blazein.data.model.VideoItem
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            BlazeInTheme {
+            val context = LocalContext.current
+            val userPrefs = remember { UserPreferences(context) }
+            var isDarkTheme by remember { mutableStateOf(userPrefs.isDarkTheme(false)) }
+
+            BlazeInTheme(darkTheme = isDarkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    TelegramApp()
+                    TelegramApp(
+                        onToggleTheme = {
+                            isDarkTheme = !isDarkTheme
+                            userPrefs.themeMode = if (isDarkTheme) "dark" else "light"
+                        }
+                    )
                 }
             }
         }
@@ -44,16 +52,13 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun TelegramApp(viewModel: TelegramViewModel = viewModel(), downloadsViewModel: DownloadsViewModel = viewModel()) {
+fun TelegramApp(
+    viewModel: TelegramViewModel = viewModel(),
+    downloadsViewModel: DownloadsViewModel = viewModel(),
+    onToggleTheme: () -> Unit = {}
+) {
     val navController = rememberNavController()
     val authState by viewModel.authState.collectAsState()
-
-    // Automatically navigate to home when auth succeeds, or to settings if needed
-    LaunchedEffect(authState) {
-        if (authState is AuthState.Ready) {
-            // If on settings screen and logged in, can stay or navigate to home
-        }
-    }
 
     NavHost(
         navController = navController,
@@ -71,7 +76,8 @@ fun TelegramApp(viewModel: TelegramViewModel = viewModel(), downloadsViewModel: 
                 },
                 onPlayVideo = { video ->
                     navController.navigate("player")
-                }
+                },
+                onToggleTheme = onToggleTheme
             )
         }
 
@@ -81,7 +87,8 @@ fun TelegramApp(viewModel: TelegramViewModel = viewModel(), downloadsViewModel: 
                 downloadsViewModel = downloadsViewModel,
                 onNavigateBack = {
                     navController.popBackStack()
-                }
+                },
+                onToggleTheme = onToggleTheme
             )
         }
         
@@ -109,7 +116,8 @@ fun TelegramApp(viewModel: TelegramViewModel = viewModel(), downloadsViewModel: 
                         isDownloading = false
                     )
                     navController.navigate("player")
-                }
+                },
+                onToggleTheme = onToggleTheme
             )
         }
 

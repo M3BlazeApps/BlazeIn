@@ -45,6 +45,10 @@ BlazeIn connects directly to Telegram's MTProto network via TDLib, letting you d
 - **Open-source Movie Database Details**: Automatically parses video file names and fetches rich metadata (movie/show title, release year, genre, plot synopsis, and high-res poster artwork) via open-source iTunes Search API with no API key needed
 - Automatic local playback when file is fully downloaded
 
+### 🔥 3D Glassmorphic Brand Identity & Assets (New in v2.1.0)
+- **Refreshed 3D Logo**: High-end glassmorphic brand icon featuring fluid sculpted flame ribbons ('Blaze'), frosted crystal play button ('Video Streaming'), and luminous Telegram paper airplane emblem.
+- **Modern Adaptive Launcher Icons**: Full-density Android launcher icons (mdpi to xxxhdpi) with adaptive icon layers and circular masks.
+
 ### 🎨 Figma Make Glassmorphism & UI Redesign
 - **Obsidian Mesh Canvas**: Deep obsidian dark background (`#080B1A`) with ambient 4-point radial mesh glow (indigo, azure, violet, warm orange)
 - **Electric Dual-Accent System**: Vivid Blue-Violet (`#6366F1`) and high-energy Electric Orange (`#F97316`) for primary actions, buttons, and badges
@@ -55,7 +59,7 @@ BlazeIn connects directly to Telegram's MTProto network via TDLib, letting you d
 
 | Component | Technology |
 |---|---|
-| Version | 2.0.0 |
+| Version | 2.1.0 |
 | Language | Kotlin 2.2.10 |
 | UI | Jetpack Compose + Material 3 |
 | Architecture | MVVM (ViewModel + StateFlow + UDF) |

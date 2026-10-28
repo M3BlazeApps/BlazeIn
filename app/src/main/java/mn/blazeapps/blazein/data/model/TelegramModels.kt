@@ -41,5 +41,16 @@ data class VideoItem(
     val isDownloaded: Boolean = false,
     val downloadProgress: Float = 0f,
     val isDownloading: Boolean = false,
-    val thumbnailPath: String? = null
+    val thumbnailPath: String? = null,
+    val posterUrl: String? = null
 )
+
+data class MovieMetadata(
+    val title: String,
+    val year: String,
+    val genre: String,
+    val plot: String,
+    val posterUrl: String,
+    val posterLocalPath: String? = null
+)
+

@@ -83,6 +83,14 @@ class TelegramViewModel(application: Application) : AndroidViewModel(application
         repository.selectChat(chatId)
     }
 
+    fun clearChatSelection() {
+        repository.clearChatSelection()
+    }
+
+    fun refreshChats() {
+        repository.loadAllChats()
+    }
+
     fun loadAllChats() {
         repository.loadAllChats()
     }

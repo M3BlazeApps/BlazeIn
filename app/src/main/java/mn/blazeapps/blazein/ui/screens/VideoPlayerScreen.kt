@@ -429,6 +429,72 @@ fun VideoPlayerScreen(
         }
     }
 
+    // Auto-detect and download/load corresponding SRT subtitle file
+    LaunchedEffect(video) {
+        // 1. Check local filesystem if localPath is present
+        if (!video.localPath.isNullOrBlank()) {
+            val videoFile = File(video.localPath)
+            if (videoFile.exists()) {
+                val parentDir = videoFile.parentFile
+                if (parentDir != null && parentDir.exists()) {
+                    val videoBase = videoFile.nameWithoutExtension.lowercase()
+                    val srtFiles = parentDir.listFiles { f ->
+                        f.isFile && (f.extension.equals("srt", ignoreCase = true) || f.extension.equals("vtt", ignoreCase = true))
+                    } ?: emptyArray()
+
+                    val matchingLocalSrt = srtFiles.firstOrNull { f ->
+                        val fBase = f.nameWithoutExtension.lowercase()
+                        fBase == videoBase || fBase.startsWith(videoBase) || videoBase.startsWith(fBase)
+                    } ?: if (srtFiles.size == 1) srtFiles[0] else null
+
+                    if (matchingLocalSrt != null && matchingLocalSrt.exists()) {
+                        try {
+                            val content = matchingLocalSrt.readText(Charsets.UTF_8)
+                            val entries = parseSubtitleFile(content)
+                            if (entries.isNotEmpty()) {
+                                subtitleEntries = entries
+                                loadedSubtitleName = matchingLocalSrt.name
+                                Log.d(TAG, "Auto-loaded local subtitles: ${matchingLocalSrt.name} (${entries.size} entries)")
+                                Toast.makeText(context, "Subtitles loaded: ${matchingLocalSrt.name}", Toast.LENGTH_SHORT).show()
+                                return@LaunchedEffect
+                            }
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Error reading local subtitle file: ${e.message}")
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. If from Telegram, search chat/channel for corresponding SRT document
+        if (video.chatId != 0L) {
+            try {
+                val matchingDoc = repository.findMatchingSrt(
+                    chatId = video.chatId,
+                    videoMessageId = video.messageId,
+                    videoFileName = video.fileName
+                )
+                if (matchingDoc != null) {
+                    val docName = matchingDoc.fileName ?: "subtitles.srt"
+                    Log.d(TAG, "Found corresponding Telegram SRT document: $docName")
+                    val srtFile = repository.downloadSrtDocument(matchingDoc)
+                    if (srtFile != null && srtFile.exists()) {
+                        val content = srtFile.readText(Charsets.UTF_8)
+                        val entries = parseSubtitleFile(content)
+                        if (entries.isNotEmpty()) {
+                            subtitleEntries = entries
+                            loadedSubtitleName = docName
+                            Log.d(TAG, "Auto-loaded Telegram subtitles: $docName (${entries.size} entries)")
+                            Toast.makeText(context, "Subtitles loaded: $docName", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to auto-fetch Telegram subtitles: ${e.message}")
+            }
+        }
+    }
+
     // Subtitle file picker launcher (.srt, .vtt, etc.)
     val subtitleLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -588,11 +654,11 @@ fun VideoPlayerScreen(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = video.caption.ifBlank { video.fileName },
+                            text = video.fileName,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = Color.White,
-                            maxLines = 1,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
                         Row(verticalAlignment = Alignment.CenterVertically) {

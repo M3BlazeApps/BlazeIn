@@ -31,7 +31,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import mn.blazeapps.blazein.R
 import mn.blazeapps.blazein.data.model.AuthState
 import mn.blazeapps.blazein.data.model.ChatSummary
@@ -48,8 +47,10 @@ fun HomeScreen(
     viewModel: TelegramViewModel,
     onNavigateToSettings: () -> Unit,
     onNavigateToDownloads: () -> Unit,
-    onPlayVideo: (VideoItem) -> Unit
+    onPlayVideo: (VideoItem) -> Unit,
+    onToggleTheme: (() -> Unit)? = null
 ) {
+    val isDark = LocalIsDarkTheme.current
     val authState by viewModel.authState.collectAsState()
     val chats by viewModel.chats.collectAsState()
     val isLoadingChats by viewModel.isLoadingChats.collectAsState()
@@ -83,31 +84,29 @@ fun HomeScreen(
         topBar = {
             GlassTopAppBar(
                 leadingBrandIcon = {
-                    SquircleIconBox(
-                        size = 44.dp,
-                        shape = RoundedCornerShape(14.dp),
-                        brush = Brush.linearGradient(
-                            listOf(ColorBlueViolet, ColorOrange)
-                        ),
-                        shadowColor = Color(0x666366F1)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Bolt,
-                            contentDescription = "BlazeIn Logo",
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_blazein_logo),
+                        contentDescription = "BlazeIn Logo",
+                        modifier = Modifier
+                            .size(42.dp)
+                            .shadow(
+                                elevation = 8.dp,
+                                shape = RoundedCornerShape(13.dp),
+                                spotColor = Color(0x606C5CE7),
+                                ambientColor = Color(0x606C5CE7)
+                            )
+                            .clip(RoundedCornerShape(13.dp))
+                    )
                 },
                 title = {
                     Text(
                         text = "BlazeIn",
                         style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = (-0.5).sp,
-                            fontSize = 20.sp
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = (-0.6).sp,
+                            fontSize = 21.sp
                         ),
-                        color = Color.White
+                        color = if (isDark) TextLightPrimary else TextDarkPrimary
                     )
                 },
                 subtitle = {
@@ -118,53 +117,82 @@ fun HomeScreen(
                             fontSize = 11.sp,
                             letterSpacing = 0.2.sp
                         ),
-                        color = ColorBlueVioletLight
+                        color = if (isDark) NativeVioletLight else NativeViolet
                     )
                 },
                 actions = {
-                    GlassIconButton(
-                        onClick = onNavigateToDownloads,
-                        size = 36.dp,
-                        shape = RoundedCornerShape(12.dp),
-                        containerColor = GlassBg,
-                        borderAlphaTop = 0.24f
+                    // NativeOffice-style Rounded Capsule Action Container
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .background(if (isDark) CardDark else CardWhite)
+                            .border(
+                                BorderStroke(1.dp, if (isDark) BorderDark else BorderLight),
+                                RoundedCornerShape(50)
+                            )
+                            .shadow(
+                                elevation = 4.dp,
+                                shape = RoundedCornerShape(50),
+                                spotColor = if (isDark) Color(0x30000000) else Color(0x126C5CE7)
+                            )
+                            .padding(horizontal = 4.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            Icons.Default.Download,
-                            contentDescription = "Downloads",
-                            modifier = Modifier.size(17.dp),
-                            tint = Color.White
-                        )
-                    }
-                    if (selectedChatId != null) {
-                        GlassIconButton(
-                            onClick = { viewModel.refreshVideos() },
-                            size = 36.dp,
-                            shape = RoundedCornerShape(12.dp),
-                            containerColor = GlassBg,
-                            borderAlphaTop = 0.24f
+                        // Theme Toggle Button (Moon / Sun)
+                        if (onToggleTheme != null) {
+                            IconButton(
+                                onClick = onToggleTheme,
+                                modifier = Modifier.size(34.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (isDark) Icons.Default.LightMode else Icons.Default.NightsStay,
+                                    contentDescription = "Toggle Theme",
+                                    tint = if (isDark) Color(0xFFFFB74D) else TextDarkPrimary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+
+                        // Downloads Shortcut Button
+                        IconButton(
+                            onClick = onNavigateToDownloads,
+                            modifier = Modifier.size(34.dp)
                         ) {
                             Icon(
-                                Icons.Default.Refresh,
-                                contentDescription = "Refresh Videos",
-                                modifier = Modifier.size(17.dp),
-                                tint = Color.White
+                                imageVector = Icons.Default.Download,
+                                contentDescription = "Downloads",
+                                tint = if (isDark) TextLightPrimary else TextDarkPrimary,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
-                    }
-                    GlassIconButton(
-                        onClick = onNavigateToSettings,
-                        size = 36.dp,
-                        shape = RoundedCornerShape(12.dp),
-                        containerColor = GlassBg,
-                        borderAlphaTop = 0.24f
-                    ) {
-                        Icon(
-                            Icons.Default.Settings,
-                            contentDescription = "Settings",
-                            modifier = Modifier.size(17.dp),
-                            tint = Color.White
-                        )
+
+                        // Refresh Videos Button (if chat active)
+                        if (selectedChatId != null) {
+                            IconButton(
+                                onClick = { viewModel.refreshVideos() },
+                                modifier = Modifier.size(34.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = "Refresh Videos",
+                                    tint = if (isDark) TextLightPrimary else TextDarkPrimary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+
+                        // Settings Button
+                        IconButton(
+                            onClick = onNavigateToSettings,
+                            modifier = Modifier.size(34.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Tune,
+                                contentDescription = "Settings",
+                                tint = if (isDark) TextLightPrimary else TextDarkPrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             )
@@ -178,7 +206,7 @@ fun HomeScreen(
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
-                // If not logged in, show an Apple glassy banner prompting login
+                // If not logged in, show login prompt banner
                 if (authState !is AuthState.Ready) {
                     Box(
                         modifier = Modifier
@@ -187,7 +215,8 @@ fun HomeScreen(
                     ) {
                         GlassCard(
                             modifier = Modifier.fillMaxWidth(),
-                            backgroundColor = Color(0x2A351515),
+                            backgroundColor = if (isDark) Color(0x2A351515) else CardWhite,
+                            borderColor = if (isDark) Color.White else BorderLight,
                             borderAlphaTop = 0.45f,
                             borderAlphaBottom = 0.12f
                         ) {
@@ -197,15 +226,15 @@ fun HomeScreen(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(38.dp)
+                                        .size(40.dp)
                                         .clip(CircleShape)
-                                        .background(Color(0x33FF453A)),
+                                        .background(if (isDark) Color(0x33FF453A) else CatRoseBg),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        Icons.Default.VpnKey,
+                                        imageVector = Icons.Default.VpnKey,
                                         contentDescription = null,
-                                        tint = AppleRed,
+                                        tint = CatRoseIcon,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -214,13 +243,13 @@ fun HomeScreen(
                                         text = "Not logged in to Telegram",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = AppleTextPrimary
+                                        color = if (isDark) TextLightPrimary else TextDarkPrimary
                                     )
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(
                                         text = "Enter your API credentials, phone number & OTP in Settings to stream videos.",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = AppleTextSecondary
+                                        color = if (isDark) TextLightSecondary else TextDarkSecondary
                                     )
                                 }
                             }
@@ -228,10 +257,10 @@ fun HomeScreen(
                             Button(
                                 onClick = onNavigateToSettings,
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = AppleBlue,
+                                    containerColor = NativeViolet,
                                     contentColor = Color.White
                                 ),
-                                shape = RoundedCornerShape(14.dp),
+                                shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.align(Alignment.End)
                             ) {
                                 Text("Open Settings", fontWeight = FontWeight.SemiBold)
@@ -239,7 +268,7 @@ fun HomeScreen(
                         }
                     }
                 } else {
-                    // Figma Make Auto-complete Chat Search Bar & Suggestions
+                    // Chat Search Bar (Capsule Pill Design matching reference screens)
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -260,19 +289,19 @@ fun HomeScreen(
                                     } else {
                                         "Search chats & channels…"
                                     },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = TextMuted,
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                                    color = if (isDark) TextLightMuted else TextDarkMuted,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                             },
                             singleLine = true,
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(50),
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Default.Search,
                                     contentDescription = "Search",
-                                    tint = ColorBlueVioletLight,
+                                    tint = if (isDark) NativeVioletLight else NativeViolet,
                                     modifier = Modifier.size(20.dp)
                                 )
                             },
@@ -286,7 +315,7 @@ fun HomeScreen(
                                         CircularProgressIndicator(
                                             modifier = Modifier.size(16.dp),
                                             strokeWidth = 2.dp,
-                                            color = ColorBlueVioletLight
+                                            color = NativeViolet
                                         )
                                     }
                                     if (chatSearchQuery.isNotEmpty()) {
@@ -297,7 +326,7 @@ fun HomeScreen(
                                             Icon(
                                                 imageVector = Icons.Default.Close,
                                                 contentDescription = "Clear Search",
-                                                tint = TextSecondary,
+                                                tint = if (isDark) TextLightSecondary else TextDarkSecondary,
                                                 modifier = Modifier.size(16.dp)
                                             )
                                         }
@@ -315,23 +344,28 @@ fun HomeScreen(
                                         Icon(
                                             imageVector = if (isSearchActive) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                                             contentDescription = if (isSearchActive) "Collapse Suggestions" else "Expand Suggestions",
-                                            tint = ColorBlueVioletLight,
+                                            tint = if (isDark) NativeVioletLight else NativeViolet,
                                             modifier = Modifier.size(20.dp)
                                         )
                                     }
                                 }
                             },
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = TextPrimary,
-                                unfocusedTextColor = TextPrimary,
-                                focusedContainerColor = InputBg,
-                                unfocusedContainerColor = InputBg,
-                                focusedBorderColor = ColorBlueViolet,
-                                unfocusedBorderColor = InputBorder,
-                                cursorColor = ColorBlueVioletLight
+                                focusedTextColor = if (isDark) TextLightPrimary else TextDarkPrimary,
+                                unfocusedTextColor = if (isDark) TextLightPrimary else TextDarkPrimary,
+                                focusedContainerColor = if (isDark) CardDark else CardWhite,
+                                unfocusedContainerColor = if (isDark) CardDark else CardWhite,
+                                focusedBorderColor = NativeViolet,
+                                unfocusedBorderColor = if (isDark) BorderDark else BorderLight,
+                                cursorColor = NativeViolet
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .shadow(
+                                    elevation = 4.dp,
+                                    shape = RoundedCornerShape(50),
+                                    spotColor = if (isDark) Color(0x30000000) else Color(0x106C5CE7)
+                                )
                                 .onFocusChanged { focusState ->
                                     if (focusState.isFocused) {
                                         isSearchActive = true
@@ -346,11 +380,11 @@ fun HomeScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .heightIn(max = 300.dp),
-                                backgroundColor = Color(0xF20B0F22),
+                                backgroundColor = if (isDark) CardDark else CardWhite,
                                 borderAlphaTop = 0.35f,
                                 borderAlphaBottom = 0.12f,
-                                borderColor = ColorBlueViolet,
-                                shape = RoundedCornerShape(16.dp),
+                                borderColor = if (isDark) BorderDark else BorderLight,
+                                shape = RoundedCornerShape(18.dp),
                                 contentPadding = PaddingValues(0.dp)
                             ) {
                                 Row(
@@ -368,7 +402,7 @@ fun HomeScreen(
                                         },
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = TextSecondary
+                                        color = if (isDark) TextLightSecondary else TextDarkSecondary
                                     )
                                     TextButton(
                                         onClick = {
@@ -381,12 +415,15 @@ fun HomeScreen(
                                         Text(
                                             text = "Done",
                                             style = MaterialTheme.typography.labelMedium,
-                                            color = ColorBlueVioletLight,
+                                            color = NativeViolet,
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
                                 }
-                                HorizontalDivider(color = Color(0x14FFFFFF), thickness = 0.5.dp)
+                                HorizontalDivider(
+                                    color = if (isDark) Color(0x14FFFFFF) else BorderLight,
+                                    thickness = 0.5.dp
+                                )
 
                                 if (filteredChats.isEmpty()) {
                                     Box(
@@ -402,7 +439,7 @@ fun HomeScreen(
                                                 "No chats found matching \"$chatSearchQuery\""
                                             },
                                             style = MaterialTheme.typography.bodyMedium,
-                                            color = TextSecondary
+                                            color = if (isDark) TextLightSecondary else TextDarkSecondary
                                         )
                                     }
                                 } else {
@@ -421,7 +458,9 @@ fun HomeScreen(
                                                         keyboardController?.hide()
                                                     }
                                                     .background(
-                                                        if (isSelected) ColorBlueVioletDim else Color.Transparent
+                                                        if (isSelected) {
+                                                            if (isDark) PillBgDark else PillBgLight
+                                                        } else Color.Transparent
                                                     )
                                                     .padding(horizontal = 14.dp, vertical = 10.dp),
                                                 verticalAlignment = Alignment.CenterVertically,
@@ -432,7 +471,12 @@ fun HomeScreen(
                                                         .size(34.dp)
                                                         .clip(CircleShape)
                                                         .background(
-                                                            if (isSelected) Brush.linearGradient(listOf(ColorBlueViolet, ColorBlueVioletLight)) else Brush.linearGradient(listOf(Color(0x20FFFFFF), Color(0x10FFFFFF)))
+                                                            when (chat.type) {
+                                                                ChatType.CHANNEL -> CatSkyBg
+                                                                ChatType.SUPERGROUP, ChatType.BASIC_GROUP -> CatMintBg
+                                                                ChatType.PRIVATE -> CatAmberBg
+                                                                else -> CatRoseBg
+                                                            }
                                                         ),
                                                     contentAlignment = Alignment.Center
                                                 ) {
@@ -444,7 +488,12 @@ fun HomeScreen(
                                                             else -> Icons.AutoMirrored.Filled.Chat
                                                         },
                                                         contentDescription = null,
-                                                        tint = if (isSelected) Color.White else TextSecondary,
+                                                        tint = when (chat.type) {
+                                                            ChatType.CHANNEL -> CatSkyIcon
+                                                            ChatType.SUPERGROUP, ChatType.BASIC_GROUP -> CatMintIcon
+                                                            ChatType.PRIVATE -> CatAmberIcon
+                                                            else -> CatRoseIcon
+                                                        },
                                                         modifier = Modifier.size(18.dp)
                                                     )
                                                 }
@@ -453,7 +502,7 @@ fun HomeScreen(
                                                         text = chat.title,
                                                         style = MaterialTheme.typography.bodyMedium,
                                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                        color = if (isSelected) ColorBlueVioletSubtle else TextPrimary,
+                                                        color = if (isSelected) NativeViolet else if (isDark) TextLightPrimary else TextDarkPrimary,
                                                         maxLines = 1,
                                                         overflow = TextOverflow.Ellipsis
                                                     )
@@ -467,35 +516,39 @@ fun HomeScreen(
                                                     Text(
                                                         text = typeLabel,
                                                         style = MaterialTheme.typography.labelSmall,
-                                                        color = TextMuted
+                                                        color = if (isDark) TextLightMuted else TextDarkMuted
                                                     )
                                                 }
                                                 if (isSelected) {
                                                     Icon(
                                                         imageVector = Icons.Default.Check,
                                                         contentDescription = "Selected",
-                                                        tint = ColorBlueVioletLight,
+                                                        tint = NativeViolet,
                                                         modifier = Modifier.size(18.dp)
                                                     )
                                                 }
                                             }
-                                            HorizontalDivider(color = Color(0x0EFFFFFF), thickness = 0.5.dp)
+                                            HorizontalDivider(
+                                                color = if (isDark) Color(0x0EFFFFFF) else BorderLight,
+                                                thickness = 0.5.dp
+                                            )
                                         }
                                     }
                                 }
                             }
                         }
 
-                        // Active Chat Status Banner (Figma Make Channel Selector)
+                        // Active Chat Status Banner
                         if (!isSearchActive && selectedChat != null) {
                             Spacer(modifier = Modifier.height(6.dp))
                             GlassCard(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable { isSearchActive = true },
-                                backgroundColor = GlassBg,
+                                backgroundColor = if (isDark) CardDark else CardWhite,
                                 borderAlphaTop = 0.25f,
                                 borderAlphaBottom = 0.08f,
+                                borderColor = if (isDark) BorderDark else BorderLight,
                                 shape = RoundedCornerShape(16.dp),
                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
                             ) {
@@ -506,12 +559,15 @@ fun HomeScreen(
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(34.dp)
-                                            .clip(CircleShape)
+                                            .size(36.dp)
+                                            .clip(RoundedCornerShape(12.dp))
                                             .background(
-                                                brush = Brush.linearGradient(
-                                                    listOf(ColorBlueViolet, ColorBlueVioletLight)
-                                                )
+                                                when (selectedChat.type) {
+                                                    ChatType.CHANNEL -> CatSkyBg
+                                                    ChatType.SUPERGROUP, ChatType.BASIC_GROUP -> CatMintBg
+                                                    ChatType.PRIVATE -> CatAmberBg
+                                                    else -> CatRoseBg
+                                                }
                                             ),
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -523,8 +579,13 @@ fun HomeScreen(
                                                 else -> Icons.AutoMirrored.Filled.Chat
                                             },
                                             contentDescription = null,
-                                            tint = Color.White,
-                                            modifier = Modifier.size(18.dp)
+                                            tint = when (selectedChat.type) {
+                                                ChatType.CHANNEL -> CatSkyIcon
+                                                ChatType.SUPERGROUP, ChatType.BASIC_GROUP -> CatMintIcon
+                                                ChatType.PRIVATE -> CatAmberIcon
+                                                else -> CatRoseIcon
+                                            },
+                                            modifier = Modifier.size(19.dp)
                                         )
                                     }
                                     Column(modifier = Modifier.weight(1f)) {
@@ -532,7 +593,7 @@ fun HomeScreen(
                                             text = selectedChat.title,
                                             style = MaterialTheme.typography.bodyMedium,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = Color.White,
+                                            color = if (isDark) TextLightPrimary else TextDarkPrimary,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
@@ -547,30 +608,33 @@ fun HomeScreen(
                                         Text(
                                             text = "$typeLabel$countLabel",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = TextMuted
+                                            color = if (isDark) TextLightMuted else TextDarkMuted
                                         )
                                     }
-                                    // Figma Make "Change" Button
+                                    // "Change" Button Capsule
                                     Row(
                                         modifier = Modifier
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(ColorBlueVioletDim)
-                                            .border(BorderStroke(1.dp, Color(0x666366F1)), RoundedCornerShape(8.dp))
-                                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                                            .clip(RoundedCornerShape(50))
+                                            .background(if (isDark) PillBgDark else PillBgLight)
+                                            .border(
+                                                BorderStroke(1.dp, if (isDark) BorderDark else BorderLight),
+                                                RoundedCornerShape(50)
+                                            )
+                                            .padding(horizontal = 12.dp, vertical = 6.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(5.dp)
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Search,
                                             contentDescription = null,
-                                            tint = ColorBlueVioletSubtle,
+                                            tint = NativeViolet,
                                             modifier = Modifier.size(13.dp)
                                         )
                                         Text(
                                             text = "Change",
-                                            color = ColorBlueVioletSubtle,
+                                            color = NativeViolet,
                                             fontSize = 11.sp,
-                                            fontWeight = FontWeight.SemiBold
+                                            fontWeight = FontWeight.Bold
                                         )
                                     }
                                 }
@@ -591,14 +655,14 @@ fun HomeScreen(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             CircularProgressIndicator(
-                                color = AppleBlue,
+                                color = NativeViolet,
                                 strokeWidth = 3.dp,
                                 modifier = Modifier.size(36.dp)
                             )
                             Text(
                                 text = "Fetching videos from Telegram...",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = AppleTextSecondary
+                                color = if (isDark) TextLightSecondary else TextDarkSecondary
                             )
                         }
                     }
@@ -611,29 +675,32 @@ fun HomeScreen(
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
                             modifier = Modifier.padding(32.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(80.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0x18FFFFFF))
-                                    .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)), CircleShape),
+                                    .size(72.dp)
+                                    .clip(RoundedCornerShape(22.dp))
+                                    .background(if (isDark) PillBgDark else PillBgLight)
+                                    .border(
+                                        BorderStroke(1.dp, if (isDark) BorderDark else BorderLight),
+                                        RoundedCornerShape(22.dp)
+                                    ),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     Icons.Default.VideoLibrary,
                                     contentDescription = null,
-                                    modifier = Modifier.size(40.dp),
-                                    tint = AppleCyan
+                                    modifier = Modifier.size(36.dp),
+                                    tint = NativeViolet
                                 )
                             }
                             Text(
                                 text = "Select a chat or channel above to view videos",
                                 style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium,
-                                color = AppleTextSecondary
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isDark) TextLightPrimary else TextDarkPrimary
                             )
                         }
                     }
@@ -651,29 +718,32 @@ fun HomeScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(80.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0x18FFFFFF))
-                                    .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)), CircleShape),
+                                    .size(72.dp)
+                                    .clip(RoundedCornerShape(22.dp))
+                                    .background(if (isDark) PillBgDark else PillBgLight)
+                                    .border(
+                                        BorderStroke(1.dp, if (isDark) BorderDark else BorderLight),
+                                        RoundedCornerShape(22.dp)
+                                    ),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     Icons.Default.VideocamOff,
                                     contentDescription = null,
-                                    modifier = Modifier.size(40.dp),
-                                    tint = AppleTextSecondary
+                                    modifier = Modifier.size(36.dp),
+                                    tint = if (isDark) TextLightMuted else TextDarkMuted
                                 )
                             }
                             Text(
                                 text = "No videos found in this chat",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = AppleTextPrimary
+                                color = if (isDark) TextLightPrimary else TextDarkPrimary
                             )
                             Text(
                                 text = "Photos, audio, voice notes, and text messages are excluded.",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = AppleTextSecondary
+                                color = if (isDark) TextLightSecondary else TextDarkSecondary
                             )
                         }
                     }
@@ -695,13 +765,13 @@ fun HomeScreen(
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(14.dp),
                                     strokeWidth = 2.dp,
-                                    color = AppleCyan
+                                    color = NativeViolet
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     "Updating...",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = AppleTextSecondary
+                                    color = if (isDark) TextLightSecondary else TextDarkSecondary
                                 )
                             }
                         }
@@ -736,32 +806,27 @@ fun HomeScreen(
                                     onClick = { viewModel.loadMoreVideos() },
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(vertical = 10.dp)
-                                        .glassEffect(
-                                            shape = RoundedCornerShape(16.dp),
-                                            backgroundColor = Color(0x240A84FF),
-                                            borderAlphaTop = 0.40f,
-                                            borderAlphaBottom = 0.12f
-                                        ),
+                                        .padding(vertical = 10.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color.Transparent,
-                                        contentColor = Color.White
+                                        containerColor = if (isDark) PillBgDark else PillBgLight,
+                                        contentColor = NativeViolet
                                     ),
+                                    border = BorderStroke(1.dp, if (isDark) BorderDark else BorderLight),
                                     shape = RoundedCornerShape(16.dp),
                                     enabled = !isLoadingVideos
                                 ) {
                                     if (isLoadingVideos) {
                                         CircularProgressIndicator(
                                             modifier = Modifier.size(18.dp),
-                                            color = Color.White,
+                                            color = NativeViolet,
                                             strokeWidth = 2.dp
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text("Loading More Videos...", fontWeight = FontWeight.SemiBold)
                                     } else {
-                                        Icon(Icons.Default.ExpandMore, contentDescription = null)
+                                        Icon(Icons.Default.ExpandMore, contentDescription = null, tint = NativeViolet)
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Load More Videos", fontWeight = FontWeight.SemiBold)
+                                        Text("Load More Videos", fontWeight = FontWeight.SemiBold, color = NativeViolet)
                                     }
                                 }
                             }
@@ -781,10 +846,12 @@ fun VideoItemCard(
     onDownloadClick: () -> Unit,
     onCancelClick: () -> Unit
 ) {
+    val isDark = LocalIsDarkTheme.current
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        backgroundColor = GlassBg,
+        shape = RoundedCornerShape(18.dp),
+        backgroundColor = if (isDark) CardDark else CardWhite,
+        borderColor = if (isDark) BorderDark else BorderLight,
         borderAlphaTop = 0.22f,
         borderAlphaBottom = 0.08f,
         contentPadding = PaddingValues(12.dp),
@@ -794,83 +861,54 @@ fun VideoItemCard(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Figma Make Thumbnail (88dp x 62dp with 12dp rounded corners)
-            Box(
-                modifier = Modifier
-                    .width(88.dp)
-                    .height(62.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        brush = Brush.linearGradient(
-                            listOf(Color(0x406366F1), Color(0x26F97316))
-                        )
-                    )
-                    .border(BorderStroke(1.dp, Color(0x18FFFFFF)), RoundedCornerShape(12.dp)),
-                contentAlignment = Alignment.Center
+            // Compact video icon squircle badge (minimal width so full filename gets maximum space)
+            SquircleIconBox(
+                size = 40.dp,
+                shape = RoundedCornerShape(12.dp),
+                brush = Brush.linearGradient(listOf(NativeViolet, ColorBlueVioletLight)),
+                shadowColor = Color(0x336C5CE7)
             ) {
-                if (video.thumbnailPath != null && File(video.thumbnailPath).exists()) {
-                    AsyncImage(
-                        model = File(video.thumbnailPath),
-                        contentDescription = "Thumbnail",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(Color(0x806366F1)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.PlayArrow,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = Color.White
-                        )
-                    }
-                }
-
-                if (video.durationSeconds > 0) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(start = 5.dp, bottom = 5.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(Color(0xCC000000))
-                            .padding(horizontal = 5.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = formatDuration(video.durationSeconds),
-                            color = Color.White,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Details
+            // Details - full file name across 2-3 lines
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                val title = video.caption.ifBlank { video.fileName }
                 Text(
-                    text = title,
+                    text = video.fileName,
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.SemiBold,
-                        lineHeight = 18.sp,
+                        lineHeight = 19.sp,
                         fontSize = 14.sp
                     ),
-                    color = Color.White,
-                    maxLines = 1,
+                    color = if (isDark) TextLightPrimary else TextDarkPrimary,
+                    maxLines = 3,
                     overflow = TextOverflow.Ellipsis
                 )
 
-                Spacer(modifier = Modifier.height(3.dp))
+                if (video.caption.isNotBlank() && video.caption.trim() != video.fileName.trim()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = video.caption,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp
+                        ),
+                        color = if (isDark) TextLightSecondary else TextDarkSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -879,15 +917,23 @@ fun VideoItemCard(
                     Text(
                         text = formatFileSize(video.fileSize),
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                        color = TextMuted
+                        color = if (isDark) TextLightMuted else TextDarkMuted
                     )
+
+                    if (video.durationSeconds > 0) {
+                        Text(
+                            text = "• ${formatDuration(video.durationSeconds)}",
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                            color = if (isDark) TextLightMuted else TextDarkMuted
+                        )
+                    }
 
                     if (video.isDownloaded) {
                         Text(
                             text = "• Offline",
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                            color = ColorGreenLight,
-                            fontWeight = FontWeight.Medium
+                            color = CatMintIcon,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -900,14 +946,14 @@ fun VideoItemCard(
                             .fillMaxWidth()
                             .height(4.dp)
                             .clip(RoundedCornerShape(2.dp)),
-                        color = ColorOrange,
-                        trackColor = Color(0x33FFFFFF)
+                        color = NativeViolet,
+                        trackColor = if (isDark) Color(0x33FFFFFF) else Color(0x1F6C5CE7)
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "Downloading: ${(video.downloadProgress * 100).toInt()}%",
                         style = MaterialTheme.typography.labelSmall,
-                        color = ColorOrangeLight,
+                        color = NativeViolet,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -915,27 +961,23 @@ fun VideoItemCard(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Figma Make Action Buttons (Electric Orange Play Button & Glass Download Button)
+            // Action Buttons
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Play Button (btn-orange)
+                // Play Button
                 Box(
                     modifier = Modifier
                         .size(36.dp)
                         .shadow(
                             elevation = 6.dp,
                             shape = CircleShape,
-                            spotColor = Color(0x66F97316),
-                            ambientColor = Color(0x33F97316)
+                            spotColor = if (isDark) Color(0x40000000) else Color(0x306C5CE7),
+                            ambientColor = Color.Transparent
                         )
                         .clip(CircleShape)
-                        .background(
-                            brush = Brush.linearGradient(
-                                listOf(ColorOrange, ColorOrangeLight)
-                            )
-                        )
+                        .background(NativeViolet)
                         .clickable(onClick = onClick),
                     contentAlignment = Alignment.Center
                 ) {
@@ -954,33 +996,33 @@ fun VideoItemCard(
                             modifier = Modifier
                                 .size(32.dp)
                                 .clip(CircleShape)
-                                .background(ColorRedDim)
-                                .border(BorderStroke(1.dp, Color(0x66EF4444)), CircleShape)
+                                .background(CatRoseBg)
+                                .border(BorderStroke(1.dp, CatRoseIcon.copy(alpha = 0.5f)), CircleShape)
                                 .clickable(onClick = onCancelClick),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Cancel Download",
-                                tint = ColorRedLight,
-                                modifier = Modifier.size(15.dp)
+                                tint = CatRoseIcon,
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }
                     video.isDownloaded -> {
                         Box(
                             modifier = Modifier
-                                .size(36.dp)
+                                .size(32.dp)
                                 .clip(CircleShape)
-                                .background(ColorGreenDim)
-                                .border(BorderStroke(1.dp, Color(0x6622C55E)), CircleShape)
+                                .background(CatMintBg)
+                                .border(BorderStroke(1.dp, CatMintIcon.copy(alpha = 0.5f)), CircleShape)
                                 .clickable(onClick = onClick),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = "Downloaded",
-                                tint = ColorGreenLight,
+                                tint = CatMintIcon,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -988,17 +1030,17 @@ fun VideoItemCard(
                     else -> {
                         Box(
                             modifier = Modifier
-                                .size(36.dp)
+                                .size(34.dp)
                                 .clip(CircleShape)
-                                .background(GlassBg)
-                                .border(BorderStroke(1.dp, Color(0x666366F1)), CircleShape)
+                                .background(if (isDark) PillBgDark else PillBgLight)
+                                .border(BorderStroke(1.dp, if (isDark) BorderDark else BorderLight), CircleShape)
                                 .clickable(onClick = onDownloadClick),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Download,
                                 contentDescription = "Download",
-                                tint = Color.White,
+                                tint = if (isDark) TextLightPrimary else NativeViolet,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -1032,4 +1074,3 @@ private fun formatFileSize(bytes: Long): String {
         else -> "$bytes B"
     }
 }
-

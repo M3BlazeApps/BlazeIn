@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import mn.blazeapps.blazein.data.model.AuthState
 import mn.blazeapps.blazein.data.model.ChatSummary
 import mn.blazeapps.blazein.data.model.ChatType
@@ -54,6 +56,8 @@ class TelegramRepository private constructor(private val context: Context) : Cli
     private var nextFromMessageIdDoc = 0L
     private var nextFromMessageIdHistory = 0L
     private val videoCache = ConcurrentHashMap<Long, VideoItem>()
+    private val itunesService by lazy { mn.blazeapps.blazein.media.iTunesMetadataService(context) }
+    private var metadataJob: kotlinx.coroutines.Job? = null
 
     private val _activeDownloadFileId = MutableStateFlow<Int?>(null)
     val activeDownloadFileId: StateFlow<Int?> = _activeDownloadFileId.asStateFlow()
@@ -279,8 +283,14 @@ class TelegramRepository private constructor(private val context: Context) : Cli
         loadVideosForChat(chatId)
     }
 
+    fun clearChatSelection() {
+        _selectedChatId.value = null
+        _videos.value = emptyList()
+    }
+
     fun loadVideosForChat(chatId: Long) {
         _selectedChatId.value = chatId
+        metadataJob?.cancel()
         videoCache.clear()
         _videos.value = emptyList()
         nextFromMessageIdVideo = 0L
@@ -309,6 +319,7 @@ class TelegramRepository private constructor(private val context: Context) : Cli
                 if (newFoundCount == 0 && nextFromMessageIdVideo == 0L && nextFromMessageIdDoc == 0L) {
                     _hasMoreVideos.value = false
                 }
+                enrichVideosMetadata()
             }
         }
 
@@ -371,6 +382,10 @@ class TelegramRepository private constructor(private val context: Context) : Cli
         _videos.value = videoCache.values.sortedByDescending { it.messageId }
     }
 
+    private fun enrichVideosMetadata() {
+        // Thumbnail & poster functionality completely removed per user request
+    }
+
     private fun isVideoMime(mime: String): Boolean {
         if (mime.isBlank()) return false
         val lower = mime.lowercase()
@@ -402,14 +417,6 @@ class TelegramRepository private constructor(private val context: Context) : Cli
                 val downloaded = file.local?.downloadedSize ?: 0
                 val progress = if (expected > 0) downloaded.toFloat() / expected else 0f
 
-                val thumb = v.thumbnail
-                val thumbFile = thumb?.file
-                val thumbLocal = thumbFile?.local
-                val thumbPath = if (thumbLocal?.isDownloadingCompleted == true) thumbLocal.path else null
-                if (thumbPath == null && thumbFile != null && thumbLocal?.isDownloadingActive == false) {
-                    client?.send(TdApi.DownloadFile(thumbFile.id, 1, 0, 0, false), null)
-                }
-
                 VideoItem(
                     messageId = msg.id,
                     chatId = msg.chatId,
@@ -424,7 +431,7 @@ class TelegramRepository private constructor(private val context: Context) : Cli
                     isDownloaded = isDownloaded,
                     downloadProgress = progress,
                     isDownloading = file.local?.isDownloadingActive == true,
-                    thumbnailPath = thumbPath
+                    thumbnailPath = null
                 )
             }
             is TdApi.MessageDocument -> {
@@ -442,14 +449,6 @@ class TelegramRepository private constructor(private val context: Context) : Cli
                 val downloaded = file.local?.downloadedSize ?: 0
                 val progress = if (expected > 0) downloaded.toFloat() / expected else 0f
 
-                val docThumb = doc.thumbnail
-                val docThumbFile = docThumb?.file
-                val docThumbLocal = docThumbFile?.local
-                val thumbPath = if (docThumbLocal?.isDownloadingCompleted == true) docThumbLocal.path else null
-                if (thumbPath == null && docThumbFile != null && docThumbLocal?.isDownloadingActive == false) {
-                    client?.send(TdApi.DownloadFile(docThumbFile.id, 1, 0, 0, false), null)
-                }
-
                 VideoItem(
                     messageId = msg.id,
                     chatId = msg.chatId,
@@ -464,7 +463,7 @@ class TelegramRepository private constructor(private val context: Context) : Cli
                     isDownloaded = isDownloaded,
                     downloadProgress = progress,
                     isDownloading = file.local?.isDownloadingActive == true,
-                    thumbnailPath = thumbPath
+                    thumbnailPath = null
                 )
             }
             is TdApi.MessageAnimation -> {
@@ -475,14 +474,6 @@ class TelegramRepository private constructor(private val context: Context) : Cli
                 val expected = if (file.expectedSize > 0) file.expectedSize else file.size
                 val downloaded = file.local?.downloadedSize ?: 0
                 val progress = if (expected > 0) downloaded.toFloat() / expected else 0f
-
-                val thumb = anim.thumbnail
-                val thumbFile = thumb?.file
-                val thumbLocal = thumbFile?.local
-                val thumbPath = if (thumbLocal?.isDownloadingCompleted == true) thumbLocal.path else null
-                if (thumbPath == null && thumbFile != null && thumbLocal?.isDownloadingActive == false) {
-                    client?.send(TdApi.DownloadFile(thumbFile.id, 1, 0, 0, false), null)
-                }
 
                 VideoItem(
                     messageId = msg.id,
@@ -498,7 +489,7 @@ class TelegramRepository private constructor(private val context: Context) : Cli
                     isDownloaded = isDownloaded,
                     downloadProgress = progress,
                     isDownloading = file.local?.isDownloadingActive == true,
-                    thumbnailPath = thumbPath
+                    thumbnailPath = null
                 )
             }
             else -> null // Strictly exclude photos, audio, voice notes, stickers, text
@@ -522,6 +513,178 @@ class TelegramRepository private constructor(private val context: Context) : Cli
                 Log.e(TAG, "DownloadFile error: ${result.message}")
             }
         }
+        // Also look for matching SRT in background and download alongside video
+        scope.launch {
+            try {
+                val videoItem = videoCache.values.firstOrNull { it.fileId == fileId } ?: return@launch
+                val matchingDoc = findMatchingSrt(videoItem.chatId, videoItem.messageId, videoItem.fileName)
+                if (matchingDoc != null) {
+                    downloadSrtDocument(matchingDoc)
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    /**
+     * Search the Telegram chat for a corresponding .srt or .vtt subtitle file.
+     * Checks nearby messages first, then searches chat documents if needed.
+     */
+    suspend fun findMatchingSrt(chatId: Long, videoMessageId: Long, videoFileName: String): TdApi.Document? = withContext(Dispatchers.IO) {
+        if (chatId == 0L) return@withContext null
+
+        val videoBase = videoFileName.substringBeforeLast('.').trim().lowercase()
+        val videoTokens = extractSearchTokens(videoBase)
+
+        val candidates = mutableListOf<Pair<Long, TdApi.Document>>() // Pair(messageId, Document)
+
+        // 1. Check nearby messages around videoMessageId (typically subtitles are posted immediately adjacent)
+        if (videoMessageId != 0L) {
+            try {
+                val history = execute(TdApi.GetChatHistory(chatId, videoMessageId, -10, 21, false))
+                for (msg in history.messages) {
+                    if (msg.id == videoMessageId) continue
+                    val content = msg.content
+                    if (content is TdApi.MessageDocument) {
+                        val doc = content.document
+                        val docName = doc.fileName?.lowercase() ?: ""
+                        if (docName.endsWith(".srt") || docName.endsWith(".vtt")) {
+                            candidates.add(msg.id to doc)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not fetch nearby chat history for srt search: ${e.message}")
+            }
+        }
+
+        // 2. If no nearby candidates, search chat documents for ".srt"
+        if (candidates.isEmpty()) {
+            try {
+                val searchQuery = TdApi.SearchChatMessages().apply {
+                    this.chatId = chatId
+                    this.query = ".srt"
+                    this.fromMessageId = 0
+                    this.offset = 0
+                    this.limit = 50
+                    this.filter = TdApi.SearchMessagesFilterDocument()
+                }
+                val searchResult = execute(searchQuery)
+                for (msg in searchResult.messages) {
+                    if (msg.id == videoMessageId) continue
+                    val content = msg.content
+                    if (content is TdApi.MessageDocument) {
+                        val doc = content.document
+                        val docName = doc.fileName?.lowercase() ?: ""
+                        if (docName.endsWith(".srt") || docName.endsWith(".vtt")) {
+                            candidates.add(msg.id to doc)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "SearchChatMessages for srt failed: ${e.message}")
+            }
+        }
+
+        if (candidates.isEmpty()) return@withContext null
+
+        // 3. Score candidates to find the best match
+        var bestDoc: TdApi.Document? = null
+        var bestScore = -1
+
+        for ((msgId, doc) in candidates) {
+            val docName = doc.fileName?.lowercase() ?: continue
+            val docBase = docName.substringBeforeLast('.').trim()
+            val docTokens = extractSearchTokens(docBase)
+
+            var score = 0
+
+            // Exact or prefix match
+            if (docBase == videoBase || docBase.startsWith(videoBase) || videoBase.startsWith(docBase)) {
+                score += 1000
+            } else {
+                // Token overlap
+                val commonTokens = videoTokens.intersect(docTokens)
+                score += commonTokens.size * 100
+            }
+
+            // Proximity bonus if messageId is close (very common in movie channels)
+            if (videoMessageId != 0L) {
+                val distance = kotlin.math.abs(msgId - videoMessageId)
+                if (distance <= 2) {
+                    score += 350
+                } else if (distance <= 5) {
+                    score += 200
+                } else if (distance <= 10) {
+                    score += 100
+                }
+            }
+
+            if (score > bestScore) {
+                bestScore = score
+                bestDoc = doc
+            }
+        }
+
+        if (bestScore >= 150) bestDoc else null
+    }
+
+    /**
+     * Download an SRT document via TDLib and await completion.
+     */
+    suspend fun downloadSrtDocument(doc: TdApi.Document): File? = withContext(Dispatchers.IO) {
+        val fileId = doc.document.id
+        if (doc.document.local?.isDownloadingCompleted == true && !doc.document.local.path.isNullOrBlank()) {
+            val f = File(doc.document.local.path)
+            if (f.exists()) return@withContext f
+        }
+
+        try {
+            // Trigger high-priority download
+            client?.send(TdApi.DownloadFile(fileId, 32, 0, 0, false), null)
+
+            // Await completion with 15s timeout
+            withTimeoutOrNull(15000L) {
+                suspendCancellableCoroutine<File?> { cont ->
+                    val listener = object : () -> Unit {
+                        override fun invoke() {
+                            client?.send(TdApi.GetFile(fileId)) { res ->
+                                if (res is TdApi.File && res.local?.isDownloadingCompleted == true) {
+                                    val path = res.local.path
+                                    if (!path.isNullOrBlank()) {
+                                        val file = File(path)
+                                        if (file.exists() && cont.isActive) {
+                                            cont.resume(file)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    registerFileUpdateListener(fileId, listener)
+                    cont.invokeOnCancellation {
+                        unregisterFileUpdateListener(fileId, listener)
+                    }
+                    // Initial check
+                    listener.invoke()
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error downloading SRT document $fileId: ${e.message}")
+            null
+        }
+    }
+
+    private fun extractSearchTokens(text: String): Set<String> {
+        val stopWords = setOf(
+            "1080p", "720p", "480p", "2160p", "4k", "bluray", "webrip", "web-dl", "hdtv",
+            "x264", "x265", "hevc", "dvdrip", "aac", "aac5", "yts", "yify", "hindi",
+            "english", "telugu", "tamil", "dual", "audio", "sub", "subs", "srt", "vtt",
+            "the", "and", "mp4", "mkv", "avi"
+        )
+        return text.split(Regex("[^a-zA-Z0-9]+"))
+            .map { it.lowercase().trim() }
+            .filter { it.length >= 2 && it !in stopWords }
+            .toSet()
     }
 
     fun downloadVideoFromOffset(fileId: Int, offset: Long, limit: Long = 0L, priority: Int = 32) {

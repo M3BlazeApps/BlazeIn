@@ -19,6 +19,24 @@ class UserPreferences(context: Context) {
         get() = prefs.getString(KEY_PHONE_NUMBER, "") ?: ""
         set(value) = prefs.edit().putString(KEY_PHONE_NUMBER, value).apply()
 
+    var themeMode: String
+        get() = prefs.getString(KEY_THEME_MODE, "light") ?: "light"
+        set(value) = prefs.edit().putString(KEY_THEME_MODE, value).apply()
+
+    fun isDarkTheme(systemInDark: Boolean): Boolean {
+        return when (themeMode) {
+            "dark" -> true
+            "light" -> false
+            else -> systemInDark
+        }
+    }
+
+    fun toggleTheme(systemInDark: Boolean): String {
+        val nextMode = if (isDarkTheme(systemInDark)) "light" else "dark"
+        themeMode = nextMode
+        return nextMode
+    }
+
     fun hasApiCredentials(): Boolean = apiId != 0 && apiHash.isNotBlank()
 
     fun clear() {
@@ -29,5 +47,6 @@ class UserPreferences(context: Context) {
         private const val KEY_API_ID = "api_id"
         private const val KEY_API_HASH = "api_hash"
         private const val KEY_PHONE_NUMBER = "phone_number"
+        private const val KEY_THEME_MODE = "theme_mode"
     }
 }
